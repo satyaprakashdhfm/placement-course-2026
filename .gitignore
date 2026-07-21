@@ -1,0 +1,9 @@
+# Jupyter auto-generated
+.ipynb_checkpoints/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# OS / editor cruft
+.DS_Store
