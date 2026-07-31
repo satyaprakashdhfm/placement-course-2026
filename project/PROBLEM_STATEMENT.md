@@ -1,218 +1,167 @@
 # Mini Project — Student Result Management System
 
-**Course:** Python (Day 1–16)  ·  **Mode:** Individual  ·  **Time:** 6–8 hours
+**Course:** Python (Day 1–16)  ·  **Mode:** Individual  ·  **Time:** 3–4 hours
 
 ---
 
 ## 1. Problem Statement
 
-A college needs a small console application to manage the results of one class.
+Build a small **menu-driven console program** that stores the students of one
+class, records their marks in three subjects, and prints a class summary.
 
-The office staff must be able to add students, enter marks for three subjects,
-see who topped the class, check the pass percentage, and export a report.
-The data must **survive after the program is closed**, so it is stored in a file.
+The data must **survive after the program closes**, so it is saved in a JSON file.
 
-Build this as a **menu-driven command-line program in pure Python** — no GUI and
-no third-party libraries.
+Pure Python only — no GUI, no third-party libraries.
 
 ---
 
 ## 2. What the Program Must Do
 
-| # | Feature | Description |
+| # | Option | Description |
 |---|---|---|
-| 1 | **Add student** | Take a roll number and name. Reject a roll number that already exists. |
-| 2 | **Add / update marks** | Enter marks for **maths, physics, chemistry**. Reject anything outside 0–100. |
-| 3 | **View one student** | Show all marks, total, average, grade and PASS/FAIL. |
-| 4 | **Rank list** | All students sorted by average, highest first, with rank numbers. |
-| 5 | **Class statistics** | Class average, pass percentage, topper, subject-wise averages, grade counts. |
-| 6 | **Search by name** | Partial, case-insensitive — typing `ra` should find `Rahul` and `Karan`. |
-| 7 | **Export report** | Write a `report.csv` file with one row per student. |
-| 8 | **Backup** *(bonus)* | Copy the database file using a **thread**. |
+| 1 | **Add student** | Ask for roll number and name. Reject a roll number that already exists. |
+| 2 | **Add marks** | Ask for **maths, physics, chemistry**. Reject anything outside 0–100. |
+| 3 | **View one student** | Show that student's marks, average and grade. |
+| 4 | **Class summary** | Rank list + total students, class average, pass %, topper. |
 | 0 | **Save & exit** | Write everything back to `students.json`. |
 
 ### Rules
 
-- **Grade** is based on the average:
+| Average | 90+ | 75–89 | 60–74 | 40–59 | below 40 |
+|---|---|---|---|---|---|
+| Grade | A | B | C | D | F |
 
-  | Average | 90+ | 80–89 | 70–79 | 60–69 | 50–59 | below 50 |
-  |---|---|---|---|---|---|---|
-  | Grade | A+ | A | B | C | D | F |
-
-- **PASS** only if **every** subject is **40 or above**. One subject below 40 = FAIL.
-- The program must **never crash**. Wrong input must print a clear message and ask again.
+- **PASS** if the grade is not `F` (average 40 or more).
+- The program must **never crash**. Wrong input prints a message and asks again.
 
 ---
 
 ## 3. Required Folder Structure
 
-Your submission **must** use exactly this layout — the marks include it.
-
 ```text
 student_result_system/
-├── requirements.txt
-├── main.py                 <- menu loop, uses if __name__ == "__main__"
+├── main.py                 <- menu only (5 functions)
 ├── data/
-│   └── students.json       <- your database (auto-created)
-└── srms/                   <- your PACKAGE
+│   └── students.json       <- GIVEN TO YOU with 3 students
+└── code/                   <- your PACKAGE
     ├── __init__.py
-    ├── models.py           <- Person (abstract), Student, Teacher
-    ├── exceptions.py       <- your custom exception classes
-    ├── storage.py          <- JSON load/save + CSV export
-    ├── analytics.py        <- rank, topper, averages, search
+    ├── models.py           <- Person (abstract) + Student
+    ├── exceptions.py       <- 2 custom exceptions
+    ├── storage.py          <- load / save JSON
+    ├── report.py           <- rank list + summary
     └── utils.py            <- decorator + input helpers
 ```
 
-**`main.py` must contain no business logic** — it only prints menus, reads input,
-and calls functions from the `srms` package.
+**Limits:** at most **5 functions per file** and at most **2 classes per file**.
+`main.py` holds **no logic** — it only shows the menu and calls the package.
+
+> ⚠️ `code` is also a standard-library module name, so this folder shadows it
+> (the Day 16 §3 trap). `python main.py` works fine, but **do not start Jupyter
+> or a debugger from inside this folder** — keep any test notebook outside it.
 
 ---
 
 ## 4. Concepts You Must Use
 
-Each one is checked while marking.
-
-| Concept | Where to use it |
+| Concept | Where |
 |---|---|
-| **Variables, type conversion, f-strings** | Reading and printing menu input |
-| **if / elif / else, loops, break** | Grade bands, menu loop |
-| **String methods** | Clean names with `.strip()` / `.title()`, search with `.lower()` |
-| **List** | Marks and ranked students |
-| **Tuple** | `GRADE_BANDS` — configuration that must not change |
-| **Set** | `SUBJECTS` — the allowed subject names |
+| Type conversion, f-strings | Menu input and printing |
+| if / elif / loops / break | Grade bands, menu loop |
+| String methods | `.strip().title()` on names |
+| **Set** | `SUBJECTS` |
+| **Tuple** | `GRADE_BANDS` |
 | **Dictionary** | `{roll_no: Student}` and `{subject: mark}` |
-| **Functions** | Every module; use default arguments and docstrings |
-| **`*args` / `**kwargs`** | Inside the decorator |
-| **lambda + `map` / `filter` / `sorted` / `reduce`** | Rank list, pass list, class average, name tags |
-| **Recursion** | `ask_int()` re-asks itself on wrong input |
-| **Decorator** | `@log_action` writes every action to `data/actions.log` |
-| **File handling (`with`, JSON, CSV)** | `storage.py` |
-| **Exceptions** | `try / except / else / finally` + **4 custom exception classes** |
-| **Classes, `__init__`, dunder methods** | `Student` with `__str__`, `__repr__`, `__eq__`, `__len__` |
-| **Class variable + `@classmethod`** | `total_people` counter, `Student.from_dict()` |
-| **Inheritance + `super()`** | `Student(Person)`, `Teacher(Person)` |
-| **Encapsulation + `@property`** | Private `__marks`; `average`, `grade`, `passed` as properties |
-| **Abstraction (`ABC`)** | `Person` with an abstract `role()` |
-| **Polymorphism** | One loop calling `.describe()` on both `Student` and `Teacher` |
-| **Modules & packages** | The `srms/` package and its `__init__.py` |
-| **Virtual environment** | Create one, and submit `requirements.txt` |
-| **Threading** *(bonus)* | Background backup |
+| Functions, default arguments, docstrings | Every file |
+| `*args` / `**kwargs` | Inside the decorator |
+| **lambda + `sorted` / `filter` / `max`** | `report.py` |
+| **Recursion** | `ask_int()` re-asks itself |
+| **Decorator** | `@log_action` writes `data/actions.log` |
+| **File handling + JSON** | `storage.py` |
+| **Exceptions** | `try / except / else` + 2 custom exception classes |
+| **Class, `__init__`, `__str__`** | `Student` |
+| **Class variable + `@classmethod`** | `Person.count`, `Student.from_dict()` |
+| **Inheritance + `super()`** | `Student(Person)` |
+| **Encapsulation + `@property`** | Private `__marks`; `average` and `grade` |
+| **Abstraction (`ABC`)** | `Person` with abstract `role()` |
+| **Package** | The `code/` folder and its `__init__.py` |
 
 ---
 
 ## 5. Expected Output
 
+You are given `data/students.json`. **Do not change it.** When your program is
+correct, running `python main.py` and pressing `4` must print *exactly* this.
+
+```json
+{
+  "101": {"name": "Rahul Verma",  "marks": {"maths": 78.0, "physics": 71.0, "chemistry": 85.0}},
+  "102": {"name": "Anita Sharma", "marks": {"maths": 95.0, "physics": 89.0, "chemistry": 90.0}},
+  "103": {"name": "Karan Patel",  "marks": {"maths": 38.0, "physics": 32.0, "chemistry": 44.0}}
+}
+```
+
 ```text
-====================================================
-          STUDENT RESULT MANAGEMENT SYSTEM
-====================================================
+===== STUDENT RESULT MANAGEMENT SYSTEM =====
   Loaded 3 student(s).
 
-1. Add student           5. Class statistics
-2. Add / update marks    6. Search by name
-3. View one student      7. Export report (CSV)
-4. Rank list             8. Backup database (threaded)
-                         0. Save & exit
+1. Add student        3. View one student
+2. Add marks          4. Class summary        0. Save & exit
 
 Choice: 4
 
-====================================================
-                     RANK LIST
-====================================================
-  RANK  ROLL   NAME                  AVG  GRADE  RESULT
-  --------------------------------------------------
-  1     102    Anita Sharma        91.33  A+     PASS
-  2     101    Rahul Verma          78.0  B      PASS
-  3     103    Karan Patel         44.67  F      FAIL
+  ROLL  NAME               AVG  GRADE RESULT
+  102   Anita Sharma     91.33  A     PASS
+  101   Rahul Verma       78.0  B     PASS
+  103   Karan Patel       38.0  F     FAIL
 
-Choice: 5
-
-====================================================
-                  CLASS STATISTICS
-====================================================
-  Students        : 3
-  Class average   : 71.33
-  Pass percentage : 66.67 %
-  Topper          : Anita Sharma (91.33)
-
-  Subject averages:
-    Chemistry    73.0  ##############
-    Maths       70.33  ##############
-    Physics     70.67  ##############
-
-  Grade distribution:
-    A+   * (1)
-    B    * (1)
-    F    * (1)
-
-  People in this class:
-    - Meera Nair (Teacher of Maths)
-    - Anita Sharma (Student)
-    - Rahul Verma (Student)
-    - Karan Patel (Student)
+  Students 3  |  Class average 69.11  |  Pass 66.67%
+  Topper: Anita Sharma
 ```
 
 **Wrong input must be handled, not crash:**
 
 ```text
 Choice: abc
-  ! Numbers only, please.
+  ! Numbers only.
 Choice: 9
-  ! Enter a number between 0 and 8.
+  ! Enter 0 to 4.
 
 Roll number : 101
-  ! Student with roll number 101 already exists
+  ! That roll number already exists.
 
-   Maths     : 120
-  ! Enter a number between 0 and 100.
-```
+Roll number : 999
+  ! No student with roll number 999
 
-**`data/report.csv` after Export:**
-
-```text
-roll_no,name,chemistry,maths,physics,total,average,grade,result
-101,Rahul Verma,85.0,78.0,71.0,234.0,78.0,B,PASS
-102,Anita Sharma,90.0,95.0,89.0,274.0,91.33,A+,PASS
-103,Karan Patel,44.0,38.0,52.0,134.0,44.67,F,FAIL
+  maths     : 120
+  ! Enter 0 to 100.
 ```
 
 ---
 
-## 6. How to Do It (suggested order)
+## 6. Suggested Order
 
-1. **Set up** — make the folders, create a virtual environment, run `python main.py`.
-2. **`exceptions.py`** — the four exception classes. Smallest file, do it first.
-3. **`models.py`** — `Person` (ABC) → `Student`, `Teacher`. Test in a notebook before moving on.
-4. **`utils.py`** — the `@log_action` decorator and the recursive `ask_int()`.
-5. **`storage.py`** — load and save JSON first; add CSV export after.
-6. **`analytics.py`** — rank, topper, averages, search.
-7. **`main.py`** — wire the menu to the functions.
-8. **Break your own program** — enter letters, negative marks, missing roll numbers. Fix every crash.
-9. **Bonus** — the threaded backup.
+1. **`exceptions.py`** — 2 classes. Smallest file, do it first.
+2. **`models.py`** — `Person` (ABC) → `Student`. Test with a small `test.py`.
+3. **`utils.py`** — the `@log_action` decorator.
+4. **`storage.py`** — load, then save.
+5. **`report.py`** — `get_student`, `rank_list`, `class_summary`.
+6. **Break your own program** — letters, negative marks, missing roll numbers.
 
 ---
 
 ## 7. Submission & Marking
 
-**Submit** a zip named `rollno_name_python_project.zip` containing the folder above,
-**without** the `venv/` folder, plus a 5-line `README.md` saying how to run it.
+Submit a zip named `rollno_name_python_project.zip` with the folder above
+(no `venv/`) and a 5-line `README.md` saying how to run it.
 
 | Area | Marks |
 |---|---|
-| Correct folder structure, package, `__init__.py`, `if __name__ == "__main__"` | 10 |
-| Classes: inheritance, `@property`, private data, ABC, dunder methods | 25 |
-| Data structures used correctly (list / tuple / set / dict) | 15 |
-| Functions, lambda, `map` / `filter` / `sorted`, recursion, decorator | 20 |
-| File handling — JSON save/load + CSV export | 15 |
-| Exception handling + 4 custom exceptions, program never crashes | 10 |
-| Clean code: names, docstrings, no repetition | 5 |
-| **Bonus** — threaded backup | +5 |
-| **Total** | **100 (+5)** |
+| Folder structure, package, `__init__.py`, `if __name__ == "__main__"` | 10 |
+| `Person` (ABC) + `Student`: inheritance, `@property`, private data, `__str__` | 30 |
+| Data structures used correctly (set / tuple / dict) | 15 |
+| Functions, lambda, `sorted` / `filter` / `max`, recursion, decorator | 20 |
+| JSON save and load | 15 |
+| 2 custom exceptions, program never crashes | 10 |
+| **Total** | **100** |
 
----
-
-## 8. Rules
-
-- Standard library only. No `pandas`, no `numpy`, no GUI.
-- Copied submissions get zero. You must be able to explain any line you wrote.
-- Marks are for **working, readable** code — not for extra features.
+Copied submissions get zero. You must be able to explain any line you wrote.
