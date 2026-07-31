@@ -1,0 +1,26 @@
+{
+  "101": {
+    "name": "Rahul Verma",
+    "marks": {
+      "maths": 78.0,
+      "physics": 71.0,
+      "chemistry": 85.0
+    }
+  },
+  "102": {
+    "name": "Anita Sharma",
+    "marks": {
+      "maths": 95.0,
+      "physics": 89.0,
+      "chemistry": 90.0
+    }
+  },
+  "103": {
+    "name": "Karan Patel",
+    "marks": {
+      "maths": 38.0,
+      "physics": 52.0,
+      "chemistry": 44.0
+    }
+  }
+}

@@ -1,0 +1,15 @@
+# Student Result Management System
+#
+# This project deliberately uses ONLY the Python standard library
+# (json, csv, abc, functools, threading, pathlib, datetime).
+# So there is nothing to install - but every real project ships this file,
+# and you still create a virtual environment for it:
+#
+#   python -m venv venv
+#   venv\Scripts\activate          (Windows)
+#   source venv/bin/activate       (macOS / Linux)
+#   pip install -r requirements.txt
+#   python main.py
+#
+# When you add a third-party package later, record it with:
+#   pip freeze > requirements.txt

@@ -5,5 +5,14 @@
 __pycache__/
 *.pyc
 
+# Virtual environments
+venv/
+.venv/
+
+# Project files generated at runtime (students.json is committed as seed data)
+project/*/data/report.csv
+project/*/data/actions.log
+project/*/data/students_backup.json
+
 # OS / editor cruft
 .DS_Store
