@@ -113,6 +113,17 @@ Choice: 4
 
   Students 3  |  Class average 69.11  |  Pass 66.67%
   Topper: Anita Sharma
+  (Person objects created this run: 3)
+```
+
+Option `3` for roll `102` must print:
+
+```text
+  Anita Sharma (Student) - roll 102
+    chemistry    90.0
+    maths        95.0
+    physics      89.0
+  Average 91.33, grade A
 ```
 
 **Bad input must be handled, not crash:**

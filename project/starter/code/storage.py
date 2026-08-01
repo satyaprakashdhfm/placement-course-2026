@@ -40,7 +40,10 @@ DB_FILE = DATA_DIR / "students.json"
 
 
 def load_students():
-    """Read students.json and return {roll_no: Student}."""
+    """Read students.json and return {roll_no: Student}.
+
+    USED BY: main.py -> main(), the first thing it does at startup.
+    """
     students = {}
     # TODO 1: use the full try / except / except / else shape.
     #
@@ -65,7 +68,10 @@ def load_students():
 
 
 def save_students(students):
-    """Write every student back to students.json."""
+    """Write every student back to students.json.
+
+    USED BY: main.py -> main(), when the user picks 0 to exit.
+    """
     # TODO 2: three steps.
     #   a) make sure the folder exists:  DATA_DIR.mkdir(exist_ok=True)
     #   b) turn the objects back into plain data with a dict comprehension:

@@ -21,7 +21,11 @@ Expected output:
 
 
 class StudentNotFoundError(Exception):
-    """Raised when a roll number is not in the students dictionary."""
+    """Raised when a roll number is not in the students dictionary.
+
+    RAISED BY: code/report.py -> get_student()
+    CAUGHT BY: main.py -> main(), which prints "  ! <message>"
+    """
 
     # TODO 1: write __init__(self, roll_no) that
     #           - stores the number:            self.roll_no = roll_no
@@ -32,7 +36,11 @@ class StudentNotFoundError(Exception):
 
 
 class InvalidMarkError(Exception):
-    """Raised when a mark is not a number between 0 and 100."""
+    """Raised when a mark is not a number between 0 and 100.
+
+    RAISED BY: code/models.py -> Student.set_mark()
+    CAUGHT BY: main.py -> main(), which prints "  ! <message>"
+    """
 
     # TODO 2: write __init__(self, mark) the same way.
     #         Store it as self.mark.

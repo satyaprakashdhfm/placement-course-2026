@@ -15,6 +15,9 @@ LOG_FILE = Path(__file__).resolve().parent.parent / "data" / "actions.log"
 def log_action(func):
     """DECORATOR: record every call in data/actions.log.
 
+    USED BY: main.py -> add_student() and add_marks(), written as @log_action
+             on the line above each of them.
+
     A decorator is a function that WRAPS another function. In main.py you
     will see:
 

@@ -10,9 +10,9 @@
   "102": {
     "name": "Anita Sharma",
     "marks": {
-      "maths": 12.0,
-      "physics": 12.0,
-      "chemistry": 12.0
+      "maths": 95.0,
+      "physics": 89.0,
+      "chemistry": 90.0
     }
   },
   "103": {
@@ -22,13 +22,5 @@
       "physics": 32.0,
       "chemistry": 44.0
     }
-  },
-  "23": {
-    "name": "Satya",
-    "marks": {}
-  },
-  "12": {
-    "name": "123",
-    "marks": {}
   }
 }

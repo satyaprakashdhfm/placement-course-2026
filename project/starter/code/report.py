@@ -22,7 +22,10 @@ from code.exceptions import StudentNotFoundError
 
 
 def get_student(students, roll_no):
-    """Return one Student, or raise StudentNotFoundError."""
+    """Return one Student, or raise StudentNotFoundError.
+
+    USED BY: main.py -> add_marks() and view_student().
+    """
     # TODO 1: two lines.
     #   a) if roll_no is not in students -> raise StudentNotFoundError(roll_no)
     #   b) otherwise return students[roll_no]
@@ -33,7 +36,10 @@ def get_student(students, roll_no):
 
 
 def rank_list(students):
-    """All students sorted by average, best first."""
+    """All students sorted by average, best first.
+
+    USED BY: main.py -> show_summary(), the loop that prints the table.
+    """
     # TODO 2: one line, using sorted() with a lambda as the key:
     #
     #     sorted(students.values(), key=lambda s: s.average, reverse=True)
@@ -46,6 +52,8 @@ def rank_list(students):
 
 def class_summary(students):
     """Return the few numbers shown for the whole class.
+
+    USED BY: main.py -> show_summary(), which reads all 4 keys.
 
     Must return a dictionary with exactly these 4 keys:
 
