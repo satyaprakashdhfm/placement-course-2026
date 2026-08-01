@@ -5,8 +5,7 @@ Run it with:  python main.py
 
 from code import report, storage
 from code.exceptions import InvalidMarkError, StudentNotFoundError
-from code.models import SUBJECTS
-from code.models import Student
+from code.models import SUBJECTS, Student
 from code.utils import ask_int, ask_text, log_action
 
 MENU = """

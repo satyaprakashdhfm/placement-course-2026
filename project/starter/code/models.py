@@ -1,80 +1,144 @@
 """Person and Student - abstraction, inheritance, encapsulation (Days 13-15).
 
-Fill in every TODO. Do not rename anything - main.py already expects
-these names.
+WHAT THIS FILE IS
+-----------------
+The heart of the project. Two classes:
+
+    Person   - ABSTRACT. Holds what every person has (a name).
+               Nobody can create a Person directly.
+    Student  - a real person, who also has a roll number and marks.
+
+Do NOT rename anything. main.py, storage.py and report.py already call
+these exact names.
+
+SELF-CHECK (run from the project folder, the one with main.py):
+
+    python -c "from code.models import Student; s = Student(1, 'ravi kumar', {'maths': 80, 'physics': 90, 'chemistry': 70}); print(s.average, s.grade); print(s)"
+
+Expected output:
+    80.0 B
+    1     Ravi Kumar        80.0  B     PASS
 """
 
 from abc import ABC, abstractmethod
 
 from code.exceptions import InvalidMarkError
 
-# TODO: a SET of the three subject names, all lowercase
+# TODO 1: SUBJECTS must be a SET (curly braces) of the three subject names,
+#         all lowercase: maths, physics, chemistry.
+#         A set is used because the order does not matter and each subject
+#         appears once.
 SUBJECTS = set()
 
-# TODO: a TUPLE of (cutoff, letter) pairs, highest first:
-#       90 -> "A", 75 -> "B", 60 -> "C", 40 -> "D", 0 -> "F"
+# TODO 2: GRADE_BANDS must be a TUPLE of (cutoff, letter) pairs, BIGGEST FIRST:
+#           90 -> "A"   75 -> "B"   60 -> "C"   40 -> "D"   0 -> "F"
+#         A tuple is used because these rules must never change while running.
+#         Shape:  ((90, "A"), (75, "B"), ...)
 GRADE_BANDS = ()
 
 
 class Person(ABC):
-    """Abstract base class - cannot be created directly."""
+    """Abstract base class. `ABC` means it cannot be created directly."""
 
-    count = 0                                   # class variable
+    count = 0                   # CLASS variable - shared by every Person ever made
 
     def __init__(self, name):
-        # TODO: clean the name with .strip().title(), store it in self.name,
-        #       and add 1 to Person.count
+        # TODO 3: three lines.
+        #   a) clean the name and save it:  self.name = name.strip().title()
+        #      .strip() removes spaces at the ends, .title() makes "ravi kumar"
+        #      into "Ravi Kumar"
+        #   b) add one to the shared counter: Person.count += 1
+        #      (write Person.count, NOT self.count - it belongs to the class)
         pass
 
     @abstractmethod
     def role(self):
-        """Every subclass must say what it is."""
+        """Abstract: it has no body here. Every subclass MUST write its own."""
 
 
 class Student(Person):
+    """A student: a Person who also has a roll number and marks."""
 
     def __init__(self, roll_no, name, marks=None):
-        # TODO: call super().__init__(name), store self.roll_no as int,
-        #       create the PRIVATE dict self.__marks,
-        #       then loop over `marks` and call self.set_mark(...)
+        # TODO 4: four steps.
+        #   a) run the parent's __init__ so the name is handled there:
+        #        super().__init__(name)
+        #   b) self.roll_no = int(roll_no)
+        #   c) create the PRIVATE marks dictionary, empty:
+        #        self.__marks = {}
+        #      Two underscores in front = private. Code outside this class
+        #      cannot touch it directly.
+        #   d) `marks` may be None, so use `(marks or {})`. Loop over its
+        #      .items() and call self.set_mark(subject, mark) for each pair,
+        #      so every mark goes through the same validation.
         pass
 
     def role(self):
-        # TODO: return "Student"
+        # TODO 5: one line - return the text "Student".
+        #         This is the abstract method from Person, now filled in.
         pass
 
     @property
     def marks(self):
-        # TODO: return a COPY of the private dict
+        """Read-only view of the marks.
+
+        @property means you write `student.marks`, not `student.marks()`.
+        """
+        # TODO 6: return a COPY, not the real dictionary:  return dict(self.__marks)
+        #         A copy means outside code cannot secretly change our marks.
         pass
 
     def set_mark(self, subject, mark):
-        # TODO: convert mark with float(); if that fails, or it is not
-        #       between 0 and 100, raise InvalidMarkError(mark).
-        #       Otherwise store it under subject.lower()
+        """The ONLY way a mark gets in. Validates first."""
+        # TODO 7: four steps.
+        #   a) try to convert:   mark = float(mark)
+        #   b) if that raises (TypeError, ValueError) -> raise InvalidMarkError(mark)
+        #   c) if not 0 <= mark <= 100                -> raise InvalidMarkError(mark)
+        #   d) otherwise store it: self.__marks[subject.lower()] = mark
         pass
 
     @property
     def average(self):
-        # TODO: 0.0 when there are no marks, else round(sum/count, 2)
+        """Average of all marks, rounded to 2 decimals."""
+        # TODO 8: two steps.
+        #   a) GUARD CLAUSE: if there are no marks yet, return 0.0
+        #      (without this you would divide by zero)
+        #   b) otherwise: round(sum(...) / len(...), 2) using self.__marks.values()
         pass
 
     @property
     def grade(self):
-        # TODO: loop over GRADE_BANDS, return the first letter that fits
+        """One letter, decided by the average."""
+        # TODO 9: loop over GRADE_BANDS. It is already sorted biggest first,
+        #         so the FIRST band the average reaches is the right one:
+        #             for cutoff, letter in GRADE_BANDS:
+        #                 if self.average >= cutoff:
+        #                     return letter
+        #         Return "F" at the end as a safety net.
         pass
 
     def __str__(self):
-        # TODO: "102   Anita Sharma     91.33  A     PASS"
-        #       Use f"{self.roll_no:<6}{self.name:<16}{self.average:>6}  "
-        #           f"{self.grade:<6}{result}"   where result is PASS or FAIL
+        """What print(student) shows - one neat table row."""
+        # TODO 10: two steps.
+        #   a) result = "FAIL" if self.grade == "F" else "PASS"
+        #   b) return this exact f-string (the numbers line the columns up):
+        #        f"{self.roll_no:<6}{self.name:<16}{self.average:>6}  "
+        #        f"{self.grade:<6}{result}"
+        #      :<6  means pad to 6 characters on the left
+        #      :>6  means pad to 6 characters on the right
         pass
 
     def to_dict(self):
-        # TODO: {"name": ..., "marks": ...}
+        """Turn this object into plain data, ready for JSON."""
+        # TODO 11: return {"name": self.name, "marks": self.marks}
         pass
 
     @classmethod
     def from_dict(cls, roll_no, data):
-        # TODO: build a Student from the dict made by to_dict()
+        """Build a Student back from that plain data.
+
+        @classmethod receives the CLASS as `cls` instead of an object as
+        `self`, so it can create one: cls(...) is the same as Student(...).
+        """
+        # TODO 12: return cls(roll_no, data["name"], data["marks"])
         pass
