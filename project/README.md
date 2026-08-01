@@ -7,7 +7,7 @@ Capstone for the Python course (Day 1–16). Small console app, standard library
 | Path | For | What it is |
 |---|---|---|
 | [PROBLEM_STATEMENT.md](PROBLEM_STATEMENT.md) | **Students** | The handout — features, rules, structure, expected output, marking scheme |
-| [starter/](starter/) | **Students** | Skeleton with `TODO`s. `main.py` and `utils.py` are mostly given |
+| [starter/](starter/) | **Students** | Skeleton with `TODO`s. `main.py`, `__init__.py` and most of `utils.py` are given |
 | [solution/](solution/) | **Teacher** | Complete working reference |
 
 ## Size

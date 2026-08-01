@@ -3,11 +3,13 @@
 This file turns the folder into a PACKAGE (Day 16).
 It runs once, the first time anything from `code` is imported.
 
-TODO: re-export the common names so `from code import Student` works,
-      then set __all__.
+Re-exporting here lets you write `from code import Student`
+instead of `from code.models import Student`.
 """
 
-# TODO: from code.models import ...
-# TODO: from code.exceptions import ...
+from code.models import SUBJECTS, Person, Student
+from code.exceptions import InvalidMarkError, StudentNotFoundError
 
 __version__ = "1.0"
+__all__ = ["Person", "Student", "SUBJECTS",
+           "StudentNotFoundError", "InvalidMarkError"]
