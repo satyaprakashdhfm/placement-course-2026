@@ -12,8 +12,8 @@ saved in a JSON file, so it **survives after the program closes**.
 
 Pure Python — no GUI, no `pip install` of anything.
 
-You are given a **starter folder**. `main.py` is already written for you.
-Your job is to fill in the `TODO`s inside the `code/` package.
+You are given a **starter folder**. `main.py`, `__init__.py` and `utils.py`
+are already written. Your job is the 17 `TODO`s in the other four files.
 
 ---
 
@@ -53,7 +53,7 @@ starter/
     ├── models.py           <- 10 TODOs   (the big one)
     ├── storage.py          <-  2 TODOs
     ├── report.py           <-  3 TODOs
-    └── utils.py            <-  1 TODO
+    └── utils.py            <- GIVEN
 ```
 
 ### What each file must contain
@@ -64,7 +64,7 @@ starter/
 | `models.py` | `Person` (abstract), `Student` | The 2 classes that hold the data. `SUBJECTS` and `GRADE_BANDS` are given |
 | `storage.py` | `load_students()`, `save_students()` | Read and write `students.json` |
 | `report.py` | `get_student()`, `rank_list()`, `class_summary()` | Answer questions about the class |
-| `utils.py` | the body of `log_action` | The decorator that writes `data/actions.log` |
+| `utils.py` | *nothing — given* | The `@log_action` decorator and the input helpers. Read it |
 
 **Limits:** at most **5 functions** and **2 classes** per file. `main.py` holds
 no logic — it only shows the menu and calls your package.
@@ -81,11 +81,10 @@ Do them in this order — each file only needs the ones above it.
 
 1. **`exceptions.py`** — 2 tiny classes. 10 minutes.
 2. **`models.py`** — `Person` then `Student`. The longest file, take your time.
-3. **`utils.py`** — 3 lines inside the decorator.
-4. **`storage.py`** — `load_students` first, then `save_students`.
-5. **`report.py`** — the 3 report functions.
-6. **Run `python main.py`** and try every option.
-7. **Break it on purpose** — letters where numbers go, marks of 500, roll `999`.
+3. **`storage.py`** — `load_students` first, then `save_students`.
+4. **`report.py`** — the 3 report functions.
+5. **Run `python main.py`** and try every option.
+6. **Break it on purpose** — letters where numbers go, marks of 500, roll `999`.
 
 Every file has a **SELF-CHECK** command in its docstring at the top. Run it as
 soon as you finish that file — do not move on until it prints what it should.
@@ -161,8 +160,8 @@ Roll number : 999
 | Functions, default arguments, docstrings | Every file |
 | `*args` / `**kwargs` | Inside the decorator |
 | **lambda + `sorted` / `filter` / `max`** | `report.py` |
-| **Recursion** | `ask_int()` and `ask_text()` re-ask themselves |
-| **Decorator** | `@log_action` |
+| **Recursion** | `ask_int()` and `ask_text()` — given, but you must be able to explain them |
+| **Decorator** | `@log_action` — given, but you must be able to explain it |
 | **File handling + JSON** | `storage.py` |
 | **Exceptions** | `try / except / else` + 2 custom classes |
 | **Class, `__init__`, `__str__`** | `Student` |
@@ -181,12 +180,11 @@ Submit a zip named `rollno_name_python_project.zip` containing your folder
 
 | Area | Marks |
 |---|---|
-| `models.py` — `Person` (ABC) + `Student`, inheritance, `@property`, private data, `__str__` | 30 |
+| `models.py` — `Person` (ABC) + `Student`, inheritance, `@property`, private data, `__str__` | 35 |
 | `report.py` — lambda with `sorted` / `filter` / `max` | 20 |
 | `storage.py` — JSON save and load | 15 |
 | Data structures used correctly (set / tuple / dict) | 15 |
 | `exceptions.py` + the program never crashes | 10 |
-| `utils.py` — working decorator | 5 |
 | Clean code: names, docstrings, no repetition | 5 |
 | **Total** | **100** |
 

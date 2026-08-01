@@ -1,8 +1,10 @@
 """Decorator and safe input (Days 9, 10).
 
-This file is given to you almost complete. You only write the inside of the
-decorator. Read `ask_int` carefully - it is a working example of RECURSION,
-a function that calls itself.
+This whole file is GIVEN to you - there is nothing to write here.
+
+Read it anyway: `log_action` is a working decorator and `ask_int` is a
+working example of RECURSION, a function that calls itself. You are expected
+to be able to explain both.
 """
 
 import functools
@@ -28,8 +30,8 @@ def log_action(func):
     call to add_student really runs `wrapper` below, which does the extra
     work (logging) and then hands back the real result.
 
-    SELF-CHECK: run the program, add a student, then open data/actions.log.
-    It should contain a line like:
+    CHECK IT WORKS: run the program, add a student, then open
+    data/actions.log. It will contain a line like:
 
         [2026-01-31 20:15:00] add_student
     """
@@ -37,18 +39,10 @@ def log_action(func):
     @functools.wraps(func)          # keeps the original name in error messages
     def wrapper(*args, **kwargs):   # *args/**kwargs accept ANY arguments
         result = func(*args, **kwargs)          # run the real function first
-
-        # TODO 1: three lines, then leave `return result` alone.
-        #   a) make sure the data folder exists:
-        #        LOG_FILE.parent.mkdir(exist_ok=True)
-        #   b) build the timestamp text:
-        #        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        #   c) APPEND one line to the file - mode "a" adds to the end,
-        #      mode "w" would erase the whole log every time:
-        #        with open(LOG_FILE, "a", encoding="utf-8") as f:
-        #            f.write(f"[{stamp}] {func.__name__}\n")
-        #      func.__name__ is the wrapped function's name, e.g. "add_student"
-
+        LOG_FILE.parent.mkdir(exist_ok=True)
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(LOG_FILE, "a", encoding="utf-8") as f:    # "a" appends
+            f.write(f"[{stamp}] {func.__name__}\n")         # e.g. add_student
         return result
 
     return wrapper
