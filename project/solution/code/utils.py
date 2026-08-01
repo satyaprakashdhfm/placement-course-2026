@@ -36,6 +36,9 @@ def ask_int(prompt, low, high):
 
 
 def ask_text(prompt):
-    """Ask for text that is not empty."""
+    """Ask for a name: letters and spaces only, never empty."""
     text = input(prompt).strip()
-    return text if text else ask_text(prompt)
+    if not text.replace(" ", "").isalpha():        # .isalpha() - Day 5
+        print("  ! Letters only - no digits or symbols.")
+        return ask_text(prompt)                    # recursive case
+    return text

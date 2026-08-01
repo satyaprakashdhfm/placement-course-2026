@@ -32,6 +32,7 @@ Pure Python only — no GUI, no third-party libraries.
 | Grade | A | B | C | D | F |
 
 - **PASS** if the grade is not `F` (average 40 or more).
+- A **name must be letters and spaces only** — reject `123`, `Anil@` and blanks.
 - The program must **never crash**. Wrong input prints a message and asks again.
 
 ---
@@ -131,6 +132,9 @@ Roll number : 101
 
 Roll number : 999
   ! No student with roll number 999
+
+Name        : 123
+  ! Letters only - no digits or symbols.
 
   maths     : 120
   ! Enter 0 to 100.
