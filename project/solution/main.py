@@ -19,10 +19,26 @@ prints menus, reads input, and calls the `code` package:
 so students[101] finds a student instantly, without searching.
 """
 
+# TWO DIFFERENT IMPORT STYLES (Day 16 section 2) - both are used on purpose.
+#
+# 1. Import the MODULE itself. You then write report.rank_list(...), so the
+#    name always says where the function came from. Good for functions whose
+#    name alone would be vague: rank_list(...) could be anything, but
+#    report.rank_list(...) is obvious.
 from code import report, storage
+
+# 2. Import NAMES out of a module. You then write Student(...) directly, with
+#    no prefix. Good for things used constantly, where the prefix would only
+#    add noise: models.Student(...) every time would be tiring to read.
 from code.exceptions import InvalidMarkError, StudentNotFoundError
 from code.models import SUBJECTS, Person, Student
 from code.utils import ask_int, ask_text, log_action
+
+# A third form works too: because code/__init__.py re-exports these names,
+# `from code import Student` is also valid - that is what __init__.py is for.
+#
+# Never write `from code.models import *`. It hides where names came from and
+# can silently overwrite your own variables.
 
 MENU = """
 1. Add student        3. View one student
