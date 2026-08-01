@@ -24,17 +24,14 @@ from abc import ABC, abstractmethod
 
 from code.exceptions import InvalidMarkError
 
-# TODO 1: SUBJECTS must be a SET (curly braces) of the three subject names,
-#         all lowercase: maths, physics, chemistry.
-#         A set is used because the order does not matter and each subject
-#         appears once.
-SUBJECTS = set()
+# GIVEN. A SET: the order does not matter and each subject appears once.
+SUBJECTS = {"maths", "physics", "chemistry"}
 
-# TODO 2: GRADE_BANDS must be a TUPLE of (cutoff, letter) pairs, BIGGEST FIRST:
-#           90 -> "A"   75 -> "B"   60 -> "C"   40 -> "D"   0 -> "F"
-#         A tuple is used because these rules must never change while running.
-#         Shape:  ((90, "A"), (75, "B"), ...)
-GRADE_BANDS = ()
+# GIVEN. A TUPLE of (cutoff, letter) pairs, BIGGEST FIRST - a tuple because
+# these rules must never change while the program runs.
+GRADE_BANDS = (
+    (90, "A"), (75, "B"), (60, "C"), (40, "D"), (0, "F"),
+)
 
 
 class Person(ABC):
@@ -43,7 +40,7 @@ class Person(ABC):
     count = 0                   # CLASS variable - shared by every Person ever made
 
     def __init__(self, name):
-        # TODO 3: three lines.
+        # TODO 1: three lines.
         #   a) clean the name and save it:  self.name = name.strip().title()
         #      .strip() removes spaces at the ends, .title() makes "ravi kumar"
         #      into "Ravi Kumar"
@@ -60,7 +57,7 @@ class Student(Person):
     """A student: a Person who also has a roll number and marks."""
 
     def __init__(self, roll_no, name, marks=None):
-        # TODO 4: four steps.
+        # TODO 2: four steps.
         #   a) run the parent's __init__ so the name is handled there:
         #        super().__init__(name)
         #   b) self.roll_no = int(roll_no)
@@ -74,7 +71,7 @@ class Student(Person):
         pass
 
     def role(self):
-        # TODO 5: one line - return the text "Student".
+        # TODO 3: one line - return the text "Student".
         #         This is the abstract method from Person, now filled in.
         pass
 
@@ -84,13 +81,13 @@ class Student(Person):
 
         @property means you write `student.marks`, not `student.marks()`.
         """
-        # TODO 6: return a COPY, not the real dictionary:  return dict(self.__marks)
+        # TODO 4: return a COPY, not the real dictionary:  return dict(self.__marks)
         #         A copy means outside code cannot secretly change our marks.
         pass
 
     def set_mark(self, subject, mark):
         """The ONLY way a mark gets in. Validates first."""
-        # TODO 7: four steps.
+        # TODO 5: four steps.
         #   a) try to convert:   mark = float(mark)
         #   b) if that raises (TypeError, ValueError) -> raise InvalidMarkError(mark)
         #   c) if not 0 <= mark <= 100                -> raise InvalidMarkError(mark)
@@ -100,7 +97,7 @@ class Student(Person):
     @property
     def average(self):
         """Average of all marks, rounded to 2 decimals."""
-        # TODO 8: two steps.
+        # TODO 6: two steps.
         #   a) GUARD CLAUSE: if there are no marks yet, return 0.0
         #      (without this you would divide by zero)
         #   b) otherwise: round(sum(...) / len(...), 2) using self.__marks.values()
@@ -109,7 +106,7 @@ class Student(Person):
     @property
     def grade(self):
         """One letter, decided by the average."""
-        # TODO 9: loop over GRADE_BANDS. It is already sorted biggest first,
+        # TODO 7: loop over GRADE_BANDS. It is already sorted biggest first,
         #         so the FIRST band the average reaches is the right one:
         #             for cutoff, letter in GRADE_BANDS:
         #                 if self.average >= cutoff:
@@ -119,7 +116,7 @@ class Student(Person):
 
     def __str__(self):
         """What print(student) shows - one neat table row."""
-        # TODO 10: two steps.
+        # TODO 8: two steps.
         #   a) result = "FAIL" if self.grade == "F" else "PASS"
         #   b) return this exact f-string (the numbers line the columns up):
         #        f"{self.roll_no:<6}{self.name:<16}{self.average:>6}  "
@@ -130,7 +127,7 @@ class Student(Person):
 
     def to_dict(self):
         """Turn this object into plain data, ready for JSON."""
-        # TODO 11: return {"name": self.name, "marks": self.marks}
+        # TODO 9: return {"name": self.name, "marks": self.marks}
         pass
 
     @classmethod
@@ -140,5 +137,5 @@ class Student(Person):
         @classmethod receives the CLASS as `cls` instead of an object as
         `self`, so it can create one: cls(...) is the same as Student(...).
         """
-        # TODO 12: return cls(roll_no, data["name"], data["marks"])
+        # TODO 10: return cls(roll_no, data["name"], data["marks"])
         pass

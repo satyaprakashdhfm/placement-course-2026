@@ -50,7 +50,7 @@ starter/
 └── code/                   <- the package you complete
     ├── __init__.py         <- GIVEN
     ├── exceptions.py       <-  2 TODOs
-    ├── models.py           <- 12 TODOs   (the big one)
+    ├── models.py           <- 10 TODOs   (the big one)
     ├── storage.py          <-  2 TODOs
     ├── report.py           <-  3 TODOs
     └── utils.py            <-  1 TODO
@@ -61,7 +61,7 @@ starter/
 | File | You write | Purpose |
 |---|---|---|
 | `exceptions.py` | `StudentNotFoundError`, `InvalidMarkError` | 2 custom exception classes |
-| `models.py` | `Person` (abstract), `Student` | The 2 classes that hold the data |
+| `models.py` | `Person` (abstract), `Student` | The 2 classes that hold the data. `SUBJECTS` and `GRADE_BANDS` are given |
 | `storage.py` | `load_students()`, `save_students()` | Read and write `students.json` |
 | `report.py` | `get_student()`, `rank_list()`, `class_summary()` | Answer questions about the class |
 | `utils.py` | the body of `log_action` | The decorator that writes `data/actions.log` |

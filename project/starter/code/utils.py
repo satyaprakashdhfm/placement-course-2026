@@ -35,7 +35,7 @@ def log_action(func):
     def wrapper(*args, **kwargs):   # *args/**kwargs accept ANY arguments
         result = func(*args, **kwargs)          # run the real function first
 
-        # TODO: three lines, then leave `return result` alone.
+        # TODO 1: three lines, then leave `return result` alone.
         #   a) make sure the data folder exists:
         #        LOG_FILE.parent.mkdir(exist_ok=True)
         #   b) build the timestamp text:
