@@ -126,6 +126,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # Without this, Ctrl+C or end-of-input dumps an ugly traceback on screen.
     try:
         main()
     except (KeyboardInterrupt, EOFError):
