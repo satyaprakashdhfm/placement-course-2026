@@ -11,7 +11,7 @@
 - Know the difference between **SQL** and **SQLite**, and why learning SQLite
   teaches you SQL everywhere.
 - Install **DB Browser for SQLite** and create your first database.
-
+this is true 
 ---
 
 ## 1. Data, Information and Database
