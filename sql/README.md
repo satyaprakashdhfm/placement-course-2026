@@ -8,16 +8,16 @@ one file, `training.db`, and all class time spent on SQL.
 | Day | Topic | Contents | Notes |
 |---|---|---|---|
 | **1** | [Database Fundamentals](Day_01_Database_Fundamentals.md) | DBMS, RDBMS, SQL, database design, SQL execution flow, **install DB Browser** | ✅ written |
-| 2–3 | Database Objects | `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, constraints, data types | ⚠️ see gaps |
-| 4–6 | SELECT Queries | `SELECT`, `WHERE`, `ORDER BY`, `DISTINCT`, `LIMIT`, aliases, expressions | |
-| 7–8 | Operators & Clauses | Comparison, logical, `IN`, `BETWEEN`, `LIKE`, `EXISTS`, `ANY`, `ALL` | ⚠️ see gaps |
-| 9–10 | SQL Functions | String, numeric, date, aggregate, conditional | |
-| 11–12 | Grouping | `GROUP BY`, `HAVING`, aggregations | |
-| 13–14 | Joins & Set Operations | `INNER`, `LEFT`, `RIGHT`, `FULL`, `SELF` joins, `UNION` | |
-| 15 | Subqueries & Window Functions | Subqueries, `ROW_NUMBER()`, `RANK()`, `DENSE_RANK()` | |
-| 16 | Views, Indexes & Transactions | Views, indexes, `COMMIT`, `ROLLBACK`, `SAVEPOINT` | |
-| 17 | PL/SQL Fundamentals | Blocks, variables, loops, procedures, functions, triggers | ❌ **see gaps** |
-| 18 | Revision & Interview Prep | Revision, real-world queries, complex interview questions | |
+| **2–3** | [Database Objects](Day_02_03_Database_Objects.md) | `CREATE`, `ALTER`, `DROP`, constraints, data types | ✅ written |
+| **4–6** | [SELECT Queries](Day_04_06_SELECT_Queries.md) | `SELECT`, `WHERE`, `ORDER BY`, `DISTINCT`, `LIMIT`, aliases, `NULL` | ✅ written |
+| **7–8** | [Operators & Clauses](Day_07_08_Operators_and_Clauses.md) | Comparison, logical, `IN`, `BETWEEN`, `LIKE`, `EXISTS` | ✅ written |
+| **9–10** | [SQL Functions](Day_09_10_SQL_Functions.md) | String, numeric, date, aggregate, `CASE` | ✅ written |
+| **11–12** | [Grouping](Day_11_12_Grouping.md) | `GROUP BY`, `HAVING`, aggregations | ✅ written |
+| **13–14** | [Joins & Set Operations](Day_13_14_Joins_and_Set_Operations.md) | `INNER`, `LEFT`, `RIGHT`, `FULL`, `SELF`, `UNION` | ✅ written |
+| **15** | [Subqueries & Window Functions](Day_15_Subqueries_and_Window_Functions.md) | Subqueries, `ROW_NUMBER`, `RANK`, `DENSE_RANK` | ✅ written |
+| **16** | [Views, Indexes & Transactions](Day_16_Views_Indexes_Transactions.md) | Views, indexes, `COMMIT`, `ROLLBACK`, `SAVEPOINT`, ACID | ✅ written |
+| **17** | [PL/SQL Fundamentals](Day_17_PL_SQL_Fundamentals.md) | Blocks, variables, loops, procedures, functions, triggers | ⚠️ theory + triggers |
+| **18** | [Revision & Interview Prep](Day_18_Revision_and_Interview_Prep.md) | 20 interview questions, query patterns, checklist | ✅ written |
 
 ---
 
@@ -52,11 +52,22 @@ window functions — was tested and works.
 
 ---
 
+## Sample data
+
+All days from 2 onwards use [`setup_training_db.sql`](setup_training_db.sql) —
+10 students, 5 courses, 5 employees. It deliberately includes a student with no
+course, a course with no students, a missing mark and a tied mark, so `LEFT JOIN`,
+`NULL` handling and `RANK` vs `DENSE_RANK` all have something real to show.
+
+**Every query output in these files was run against SQLite 3.50.4 and pasted in
+as-is.**
+
 ## Setup (one time)
 
 1. Download from <https://sqlitebrowser.org/dl/>
 2. Install: Next → Next → Install → Finish
 3. Open it, click **New Database**, save as `training.db`
-4. Go to the **Execute SQL** tab and start typing
+4. Go to the **Execute SQL** tab, paste `setup_training_db.sql`, run it
+5. Click **Write Changes**
 
 Full walkthrough in [Day 1](Day_01_Database_Fundamentals.md#10-installation--step-by-step).
