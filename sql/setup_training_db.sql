@@ -1,19 +1,19 @@
 -- ============================================================
---  Training database used from Day 2 onwards
---  Run this ONCE in DB Browser: Execute SQL tab -> paste -> Run
---  Then click Write Changes.
+--  Training database used from Day 2 onwards   (MySQL 8)
+--  In MySQL Workbench: open this file and click the lightning bolt.
+--  At the command line:  mysql -u root -p < setup_training_db.sql
 -- ============================================================
 
-DROP TABLE IF EXISTS students;
-DROP TABLE IF EXISTS courses;
-DROP TABLE IF EXISTS employees;
+DROP DATABASE IF EXISTS training;
+CREATE DATABASE training;
+USE training;
 
 -- ---------------------------------------------- courses
 CREATE TABLE courses (
-    course_id   INTEGER PRIMARY KEY,
-    course_name TEXT    NOT NULL,
-    duration    INTEGER,             -- in days
-    fee         INTEGER
+    course_id   INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    duration    INT,                     -- in days
+    fee         INT
 );
 
 INSERT INTO courses VALUES
@@ -21,17 +21,17 @@ INSERT INTO courses VALUES
     (2, 'SQL',    30, 10000),
     (3, 'Java',   60, 20000),
     (4, 'DSA',    90, 25000),
-    (5, 'Cloud',  30, 18000);        -- nobody has joined this one yet
+    (5, 'Cloud',  30, 18000);            -- nobody has joined this one yet
 
 -- ---------------------------------------------- students
 CREATE TABLE students (
-    id        INTEGER PRIMARY KEY,
-    name      TEXT    NOT NULL,
-    city      TEXT,
-    age       INTEGER,
-    course_id INTEGER,
-    marks     INTEGER,
-    joined_on TEXT,
+    id        INT PRIMARY KEY,
+    name      VARCHAR(50) NOT NULL,
+    city      VARCHAR(50),
+    age       INT,
+    course_id INT,
+    marks     INT,
+    joined_on DATE,
     FOREIGN KEY (course_id) REFERENCES courses(course_id)
 );
 
@@ -49,10 +49,10 @@ INSERT INTO students VALUES
 
 -- ---------------------------------------------- employees (for SELF JOIN)
 CREATE TABLE employees (
-    emp_id     INTEGER PRIMARY KEY,
-    emp_name   TEXT,
-    manager_id INTEGER,
-    salary     INTEGER
+    emp_id     INT PRIMARY KEY,
+    emp_name   VARCHAR(50),
+    manager_id INT,
+    salary     INT
 );
 
 INSERT INTO employees VALUES

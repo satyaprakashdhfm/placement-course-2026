@@ -1,371 +1,451 @@
-# Day 17 · PL/SQL Fundamentals
+# Day 17 · Stored Programs (PL/SQL Fundamentals)
 
-**Duration:** 50–60 Minutes  ·  **Mostly theory — read §1 first**
+**Duration:** 50–60 Minutes  ·  **Fully hands-on in MySQL**
 
----
+### Learning Outcomes
+- Write a **block** with variables, `IF` and loops.
+- Create **stored procedures** and **stored functions**, and tell them apart.
+- Handle errors with **`DECLARE … HANDLER`**.
+- Write **triggers** using `OLD` and `NEW`.
 
-## ⚠️ 1. Read This Before The Class
-
-**SQLite has no procedural language.** Five of today's six topics **cannot be
-run** in DB Browser:
-
-| Topic | SQLite | What we do |
-|---|---|---|
-| Blocks (`DECLARE … BEGIN … END`) | ❌ syntax error | theory + Oracle/MySQL syntax |
-| Variables | ❌ | theory |
-| Loops (`LOOP`, `FOR`, `WHILE`) | ❌ | theory |
-| Stored procedures | ❌ | theory |
-| Stored functions | ❌ | theory |
-| **Triggers** | ✅ **works** | **hands-on** |
-
-```sql
-CREATE PROCEDURE greet() BEGIN SELECT 'hi'; END;
-```
-```text
-Error: near "PROCEDURE": syntax error
-```
-
-```sql
-DECLARE v_count INT;
-```
-```text
-Error: near "DECLARE": syntax error
-```
-
-So today is a **theory class with one practical section**. You must be able to
-**read and write** PL/SQL for interviews and for any job using Oracle or MySQL —
-you simply cannot execute it here. Everything else in this course you have run
-yourself; be honest with yourself that this part is learned from the page.
+> 📌 **Naming.** Oracle calls this **PL/SQL**. MySQL calls it **stored
+> programs**, SQL Server calls it **T-SQL**, PostgreSQL calls it **PL/pgSQL**.
+> Same idea, different dialect. **SQLite has none of it** — only triggers.
 
 ---
 
-## 2. What is PL/SQL?
-
-**PL/SQL** = **P**rocedural **L**anguage extension to **SQL** (Oracle's name;
-MySQL calls its version *stored programs*, SQL Server calls it *T-SQL*).
+## 1. Why Put Code in the Database?
 
 Plain SQL is **declarative** — one statement, one result. It has no variables,
-no `if`, no loops. PL/SQL adds them:
+no `if`, no loops. Stored programs add them:
 
-| SQL alone | SQL + PL/SQL |
+| SQL alone | SQL + stored programs |
 |---|---|
 | One statement at a time | Many statements as one program |
 | No variables | Variables and constants |
 | No branching | `IF` / `CASE` |
-| No loops | `LOOP`, `WHILE`, `FOR` |
-| Errors stop you | `EXCEPTION` handling |
+| No loops | `LOOP`, `WHILE`, `REPEAT` |
+| Errors stop you | Error handlers |
 | Runs from your app | Runs **inside** the database |
-
-**Why put code in the database?**
 
 | Benefit | Explanation |
 |---|---|
 | **Less network traffic** | Send one call, not 100 statements |
 | **Reuse** | Every application shares the same logic |
 | **Security** | Grant access to the procedure, not the tables |
-| **Speed** | Compiled once, stored ready to run |
+| **Speed** | Parsed once, stored ready to run |
 
 ---
 
-## 3. The Block Structure
+## 2. DELIMITER — Read This First
 
-Every PL/SQL program is a **block** with up to three parts:
+A stored program **contains** semicolons. The client would stop at the first
+one, so you temporarily change the statement terminator:
 
 ```sql
-DECLARE                        -- optional: variables
-    v_count   NUMBER;
-    v_name    VARCHAR2(50);
-BEGIN                          -- required: the code
-    SELECT COUNT(*) INTO v_count FROM students;
-    DBMS_OUTPUT.PUT_LINE('Students: ' || v_count);
-EXCEPTION                      -- optional: what to do when it fails
-    WHEN NO_DATA_FOUND THEN
-        DBMS_OUTPUT.PUT_LINE('Nothing found');
-END;
-/
+DELIMITER $$
+
+CREATE PROCEDURE demo()
+BEGIN
+    SELECT 'first';
+    SELECT 'second';
+END$$
+
+DELIMITER ;
 ```
 
-| Part | Required? | Purpose |
-|---|---|---|
-| `DECLARE` | optional | declare variables |
-| `BEGIN … END` | **required** | the statements |
-| `EXCEPTION` | optional | handle errors |
+**Key Note:** forgetting `DELIMITER` is the #1 error on this topic. The symptom
+is a syntax error pointing at the *first* line inside `BEGIN`.
 
-A block with no name like the one above is an **anonymous block** — it runs
-once and is not stored.
+📌 Oracle uses a lone `/` on its own line instead. PostgreSQL wraps the body in
+`$$ … $$` quotes.
 
 ---
 
-## 4. Variables
+## 3. Variables, IF and Loops
 
 ```sql
-DECLARE
-    v_marks     NUMBER := 75;                      -- with a starting value
-    v_name      VARCHAR2(50);
-    c_pass_mark CONSTANT NUMBER := 40;             -- cannot be changed
-    v_city      students.city%TYPE;                -- same type as that column
+DELIMITER $$
+CREATE PROCEDURE grade_report()
 BEGIN
-    v_name := 'Rahul';                             -- := is assignment
-    SELECT city INTO v_city FROM students WHERE id = 101;
-END;
-/
+    DECLARE v_count INT DEFAULT 0;
+    DECLARE v_avg   DECIMAL(5,2);
+    DECLARE v_label VARCHAR(20);
+
+    SELECT COUNT(*), AVG(marks) INTO v_count, v_avg FROM students;
+
+    IF v_avg >= 75 THEN       SET v_label = 'Strong batch';
+    ELSEIF v_avg >= 50 THEN   SET v_label = 'Average batch';
+    ELSE                      SET v_label = 'Weak batch';
+    END IF;
+
+    SELECT v_count AS students, ROUND(v_avg,2) AS avg_marks, v_label AS verdict;
+END$$
+DELIMITER ;
+
+CALL grade_report();
+```
+
+```text
++----------+-----------+---------------+
+| students | avg_marks | verdict       |
++----------+-----------+---------------+
+|       10 |     69.44 | Average batch |
++----------+-----------+---------------+
 ```
 
 **Key Notes:**
-- `:=` assigns, `=` compares — the opposite of most languages.
-- `%TYPE` copies a column's type. If the column changes later, your code still
-  matches.
-- `SELECT … INTO v` puts a query result into a variable. It **must** return
-  exactly one row, or you get `NO_DATA_FOUND` / `TOO_MANY_ROWS`.
+- All `DECLARE`s must come **first**, before any other statement.
+- `SET` assigns. `SELECT … INTO v` puts a query result into a variable.
+- `ELSEIF` is one word. Every `IF` ends with `END IF;`.
 
----
+📌 Oracle uses `:=` to assign and needs a `DECLARE` *section* before `BEGIN`.
+MySQL declares **inside** `BEGIN` and uses `SET`.
 
-## 5. Conditions
-
-```sql
-IF v_marks >= 75 THEN
-    v_grade := 'Distinction';
-ELSIF v_marks >= 50 THEN
-    v_grade := 'Pass';
-ELSE
-    v_grade := 'Fail';
-END IF;
-```
-
-Note the spellings: **`ELSIF`** (not `elseif` or `elif`), and every `IF` is
-closed by **`END IF;`**.
-
----
-
-## 6. Loops
+### The three loops
 
 ```sql
--- 1. Basic loop - you must exit yourself
-LOOP
-    v_i := v_i + 1;
-    EXIT WHEN v_i > 5;
-END LOOP;
+WHILE i <= 5 DO          -- test first
+    SET i = i + 1;
+END WHILE;
 
--- 2. WHILE loop - test first
-WHILE v_i <= 5 LOOP
-    v_i := v_i + 1;
-END LOOP;
+REPEAT                   -- test last, always runs once
+    SET i = i + 1;
+UNTIL i > 5 END REPEAT;
 
--- 3. FOR loop - counter is created for you
-FOR i IN 1..5 LOOP
-    DBMS_OUTPUT.PUT_LINE(i);
-END LOOP;
-
--- 4. Cursor FOR loop - walk through query results
-FOR rec IN (SELECT name, marks FROM students) LOOP
-    DBMS_OUTPUT.PUT_LINE(rec.name || ' scored ' || rec.marks);
+my_loop: LOOP            -- you must leave it yourself
+    SET i = i + 1;
+    IF i > 5 THEN LEAVE my_loop; END IF;
 END LOOP;
 ```
 
-The **cursor FOR loop** is the one that matters — it is how PL/SQL processes a
-result set row by row, and the reason procedural SQL exists.
-
----
-
-## 7. Procedures and Functions
-
-### Procedure — performs an action
+A working `WHILE`:
 
 ```sql
-CREATE OR REPLACE PROCEDURE add_student (
-    p_id     IN NUMBER,
-    p_name   IN VARCHAR2,
-    p_marks  IN NUMBER
-) AS
+DELIMITER $$
+CREATE PROCEDURE countdown()
 BEGIN
-    INSERT INTO students (id, name, marks) VALUES (p_id, p_name, p_marks);
-    COMMIT;
-END;
-/
+    DECLARE i INT DEFAULT 1;
+    DROP TEMPORARY TABLE IF EXISTS nums;
+    CREATE TEMPORARY TABLE nums (n INT);
+    WHILE i <= 5 DO
+        INSERT INTO nums VALUES (i);
+        SET i = i + 1;
+    END WHILE;
+    SELECT GROUP_CONCAT(n) AS loop_output FROM nums;
+END$$
+DELIMITER ;
 
-EXEC add_student(201, 'New Student', 65);
+CALL countdown();
 ```
 
-### Function — calculates and **returns** a value
+```text
++-------------+
+| loop_output |
++-------------+
+| 1,2,3,4,5   |
++-------------+
+```
+
+---
+
+## 4. Stored Procedures
+
+A **procedure** performs an action. Call it with `CALL`.
 
 ```sql
-CREATE OR REPLACE FUNCTION get_grade (p_marks IN NUMBER)
-RETURN VARCHAR2 AS
-    v_grade VARCHAR2(20);
+DELIMITER $$
+CREATE PROCEDURE city_report(IN p_city VARCHAR(50))
 BEGIN
-    IF    p_marks >= 75 THEN v_grade := 'Distinction';
-    ELSIF p_marks >= 50 THEN v_grade := 'Pass';
-    ELSE                     v_grade := 'Fail';
+    SELECT name, marks
+    FROM students
+    WHERE city = p_city
+    ORDER BY marks DESC;
+END$$
+DELIMITER ;
+
+CALL city_report('Hyderabad');
+```
+
+```text
++-------------+-------+
+| name        | marks |
++-------------+-------+
+| Vikram Rao  |    81 |
+| Rahul Verma |    78 |
+| Karan Patel |    38 |
++-------------+-------+
+```
+
+### Parameter modes
+
+| Mode | Meaning |
+|---|---|
+| `IN` | given to the procedure (default) |
+| `OUT` | sent back to the caller |
+| `INOUT` | both |
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE count_in_city(IN p_city VARCHAR(50), OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total FROM students WHERE city = p_city;
+END$$
+DELIMITER ;
+
+CALL count_in_city('Chennai', @n);
+SELECT @n AS chennai_students;
+```
+
+```text
++------------------+
+| chennai_students |
++------------------+
+|                3 |
++------------------+
+```
+
+`@n` is a **session variable** — it lives until you disconnect.
+
+---
+
+## 5. Stored Functions
+
+A **function** must return a value, and can be used **inside a `SELECT`**.
+
+```sql
+DELIMITER $$
+CREATE FUNCTION get_grade(p_marks INT)
+RETURNS VARCHAR(20)
+DETERMINISTIC
+BEGIN
+    DECLARE v_grade VARCHAR(20);
+    IF p_marks >= 75 THEN     SET v_grade = 'Distinction';
+    ELSEIF p_marks >= 50 THEN SET v_grade = 'Pass';
+    ELSE                      SET v_grade = 'Fail';
     END IF;
     RETURN v_grade;
-END;
-/
+END$$
+DELIMITER ;
 
-SELECT name, marks, get_grade(marks) FROM students;
+SELECT name, marks, get_grade(marks) AS grade FROM students LIMIT 4;
 ```
 
-### The difference — a guaranteed interview question
+```text
++--------------+-------+-------------+
+| name         | marks | grade       |
++--------------+-------+-------------+
+| Rahul Verma  |    78 | Distinction |
+| Anita Sharma |    95 | Distinction |
+| Karan Patel  |    38 | Fail        |
+| Priya Nair   |    66 | Pass        |
++--------------+-------+-------------+
+```
+
+**Key Note:** `DETERMINISTIC` promises the same input always gives the same
+output. Without it (or `READS SQL DATA`) MySQL may refuse to create the function
+when binary logging is on.
+
+### Procedure vs Function — a guaranteed interview question
 
 | | Procedure | Function |
 |---|---|---|
-| Returns a value | optional (via `OUT`) | **compulsory** (`RETURN`) |
-| Called with | `EXEC name(...)` | inside an expression |
+| Returns a value | optional, via `OUT` | **compulsory** (`RETURNS`) |
+| Called with | `CALL name(...)` | inside an expression |
 | Usable in `SELECT` | ❌ no | ✅ **yes** |
+| Can return a result set | ✅ yes | ❌ no |
 | Purpose | **do** something | **calculate** something |
-
-**Parameter modes:** `IN` (given to it, default), `OUT` (sent back),
-`IN OUT` (both).
 
 ---
 
-## 8. Triggers — The Part You Can Actually Run
+## 6. Error Handling
 
-A **trigger** is code that fires **automatically** when data changes. SQLite
-supports these, so this section is hands-on.
+MySQL uses **handlers** declared up front, rather than a block at the end:
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE safe_insert(IN p_id INT, IN p_name VARCHAR(50))
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        SELECT 'Insert failed - id already exists' AS message;
+
+    INSERT INTO students (id, name) VALUES (p_id, p_name);
+    SELECT 'Inserted' AS message;
+END$$
+DELIMITER ;
+
+CALL safe_insert(101, 'Clash');
+```
+
+```text
++-----------------------------------+
+| message                           |
++-----------------------------------+
+| Insert failed - id already exists |
++-----------------------------------+
+```
+
+No error reached the user — the handler caught it.
+
+| Handler | Meaning |
+|---|---|
+| `EXIT HANDLER` | run it, then leave the block |
+| `CONTINUE HANDLER` | run it, then carry on |
+| `FOR SQLEXCEPTION` | any error |
+| `FOR NOT FOUND` | a `SELECT INTO` found nothing |
+| `FOR SQLSTATE '23000'` | one specific error (here, duplicate key) |
+
+📌 Oracle writes this as an `EXCEPTION WHEN … THEN` block at the **end**, with
+named exceptions like `NO_DATA_FOUND` and `DUP_VAL_ON_INDEX`. Same purpose,
+different shape.
+
+---
+
+## 7. Triggers
+
+A **trigger** fires **automatically** when data changes. This is the one part
+of today that also exists in SQLite.
 
 ```sql
 CREATE TABLE audit_log (
-    action     TEXT,
-    student    TEXT,
-    logged_at  TEXT
+    action    VARCHAR(60),
+    student   VARCHAR(50),
+    logged_at DATETIME
 );
 
-CREATE TRIGGER log_deleted_student
-AFTER DELETE ON students
+DELIMITER $$
+CREATE TRIGGER log_marks_change
+AFTER UPDATE ON students
+FOR EACH ROW
 BEGIN
-    INSERT INTO audit_log VALUES ('DELETE', OLD.name, DATETIME('now'));
-END;
-```
+    INSERT INTO audit_log
+    VALUES (CONCAT('UPDATE ', OLD.marks, ' -> ', NEW.marks), NEW.name, NOW());
+END$$
+DELIMITER ;
 
-Now delete somebody and check the log:
-
-```sql
-DELETE FROM students WHERE id = 110;
+UPDATE students SET marks = 85 WHERE id = 101;
 SELECT action, student FROM audit_log;
 ```
 
 ```text
-action | student
--------+------------
-DELETE | Meera Nair
++-----------------+-------------+
+| action          | student     |
++-----------------+-------------+
+| UPDATE 78 -> 85 | Rahul Verma |
++-----------------+-------------+
 ```
 
 Nobody wrote to `audit_log` — the trigger did.
 
 ### OLD and NEW
 
-| Event | `OLD` available | `NEW` available |
+| Event | `OLD` | `NEW` |
 |---|---|---|
 | `INSERT` | ❌ | ✅ the incoming row |
 | `UPDATE` | ✅ before | ✅ after |
 | `DELETE` | ✅ the row going | ❌ |
 
+### Timing
+
+`BEFORE` or `AFTER`, on `INSERT`, `UPDATE` or `DELETE` — six combinations.
+Use `BEFORE` to **change or reject** the incoming value, `AFTER` to **record**
+what happened.
+
 ```sql
-CREATE TRIGGER log_marks_change
-AFTER UPDATE OF marks ON students
+DELIMITER $$
+CREATE TRIGGER tidy_name
+BEFORE INSERT ON students
+FOR EACH ROW
 BEGIN
-    INSERT INTO audit_log
-    VALUES ('UPDATE ' || OLD.marks || ' -> ' || NEW.marks, NEW.name, DATETIME('now'));
-END;
+    SET NEW.name = TRIM(NEW.name);
+END$$
+DELIMITER ;
 ```
-
-```sql
-UPDATE students SET marks = 85 WHERE id = 101;
-SELECT action, student FROM audit_log;
-```
-
-```text
-action            | student
-------------------+------------
-UPDATE 78 -> 85   | Rahul Verma
-```
-
-### Uses for triggers
 
 | Use | Example |
 |---|---|
 | **Auditing** | Record who changed what, and when |
 | **Validation** | Reject an impossible value |
 | **Derived data** | Keep a running total up to date |
-| **History** | Copy the old row into an archive table |
+| **Cleaning** | Trim spaces before storing |
 
 > ⚠️ **Use triggers sparingly.** They run invisibly. A slow or buggy trigger is
 > very hard to debug, because nothing in your code mentions it.
 
-**Key Note:** SQLite supports `BEFORE` / `AFTER` / `INSTEAD OF` triggers on
-`INSERT`, `UPDATE`, `DELETE` — but **not** Oracle's `FOR EACH STATEMENT`
-(SQLite is always `FOR EACH ROW`).
+📌 MySQL is always `FOR EACH ROW`. Oracle also has statement-level triggers.
+SQLite supports triggers but has no procedures or functions at all.
 
 ---
 
-## 9. Exception Handling
+## 8. Managing Stored Programs
 
-```sql
-BEGIN
-    SELECT name INTO v_name FROM students WHERE id = 999;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        DBMS_OUTPUT.PUT_LINE('No such student');
-    WHEN TOO_MANY_ROWS THEN
-        DBMS_OUTPUT.PUT_LINE('More than one match');
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-END;
-/
-```
-
-| Exception | Raised when |
+| Command | Does |
 |---|---|
-| `NO_DATA_FOUND` | `SELECT INTO` found nothing |
-| `TOO_MANY_ROWS` | `SELECT INTO` found more than one row |
-| `ZERO_DIVIDE` | division by zero |
-| `DUP_VAL_ON_INDEX` | duplicate on a unique column |
-| `OTHERS` | anything else — always put it **last** |
+| `SHOW PROCEDURE STATUS WHERE Db='training';` | list procedures |
+| `SHOW FUNCTION STATUS WHERE Db='training';` | list functions |
+| `SHOW TRIGGERS;` | list triggers |
+| `SHOW CREATE PROCEDURE city_report;` | see the source |
+| `DROP PROCEDURE IF EXISTS city_report;` | remove it |
+| `DROP TRIGGER IF EXISTS log_marks_change;` | remove it |
 
-If this looks like Python's `try` / `except`, that is because it is the same
-idea with different words.
+**Key Note:** MySQL has no `CREATE OR REPLACE PROCEDURE`. You must `DROP` first
+— which is why every example above should really start with
+`DROP PROCEDURE IF EXISTS …`.
+
+---
+
+## 9. Common Mistakes
+
+**1. Forgetting `DELIMITER`** — syntax error at the first inner `;`.
+
+**2. `DECLARE` after another statement** — all declarations come first.
+
+**3. Expecting `CREATE OR REPLACE`** — not supported for procedures in MySQL.
+
+**4. Missing `DETERMINISTIC` on a function** — creation may be refused.
+
+**5. Calling a procedure inside `SELECT`** — only functions can do that.
+
+**6. Heavy logic in a trigger** — every row change pays the cost, invisibly.
+
+**7. Assuming this is portable** — stored program syntax is the **least**
+portable part of SQL. The concepts move; the code does not.
 
 ---
 
 ## 10. Summary
 
-- **PL/SQL adds procedural features to SQL**: variables, `IF`, loops,
-  exceptions — and runs **inside** the database.
-- Structure: `DECLARE` (optional) → `BEGIN … END` (required) → `EXCEPTION`
-  (optional).
-- `:=` assigns, `=` compares. `%TYPE` borrows a column's type.
-- Four loops; the **cursor FOR loop** walks a result set.
-- **Procedure** = does something, called with `EXEC`.
-  **Function** = returns something, usable inside `SELECT`.
-- **Triggers** run automatically on `INSERT` / `UPDATE` / `DELETE`, using
-  `OLD` and `NEW`. **These do work in SQLite.**
-- Exceptions are SQL's `try` / `except`; `WHEN OTHERS` goes last.
-- ⚠️ Everything except triggers is **theory only** in this course.
+- Stored programs add variables, `IF`, loops and error handling, and run
+  **inside** the database.
+- **`DELIMITER $$`** is required so the client does not stop at the first `;`.
+- `DECLARE` first, `SET` to assign, `SELECT … INTO` to capture a result.
+- Loops: `WHILE`, `REPEAT`, `LOOP` + `LEAVE`.
+- **Procedure** = does something, `CALL` it, can have `OUT` parameters.
+  **Function** = returns one value, usable **inside `SELECT`**.
+- Errors are caught with `DECLARE EXIT HANDLER FOR SQLEXCEPTION`.
+- **Triggers** fire on `INSERT`/`UPDATE`/`DELETE` with `OLD` and `NEW`;
+  `BEFORE` to change, `AFTER` to record.
+- 📌 Oracle = PL/SQL, MySQL = stored programs, PostgreSQL = PL/pgSQL,
+  **SQLite = triggers only**.
 
 ---
 
 ## 11. Practice Questions
 
-**Written (no computer):**
-
-1. What does PL/SQL add that plain SQL does not have?
-2. Name the three parts of a block and say which is compulsory.
-3. What is the difference between `:=` and `=`?
-4. What does `students.city%TYPE` mean and why use it?
-5. Write a block that stores the student count in a variable and prints it.
-6. Write an `IF / ELSIF / ELSE` that grades a mark.
-7. Write a `FOR` loop printing 1 to 10.
-8. Write a cursor `FOR` loop printing every student's name.
-9. Give three differences between a procedure and a function.
-10. Which one can be used inside a `SELECT`, and why can the other not be?
-11. What are the three parameter modes?
-12. When is `NO_DATA_FOUND` raised?
-13. Why must `WHEN OTHERS` be last?
-
-**Hands-on in DB Browser:**
-
-14. Create an `audit_log` table and a trigger recording every deleted student.
-15. Delete a student and check the log.
-16. Write a trigger recording the old and new marks on every `UPDATE`.
-17. Which of `OLD` and `NEW` exists for `INSERT`, `UPDATE` and `DELETE`?
-18. Give one good reason and one danger of using triggers.
+1. Why must you change the `DELIMITER`?
+2. Write a procedure that prints how many students are in a given city.
+3. Add an `OUT` parameter returning that count instead of selecting it.
+4. Write a function `is_pass(marks)` returning `'Yes'` or `'No'`, and use it in
+   a `SELECT`.
+5. Give three differences between a procedure and a function.
+6. Why can a procedure not be used inside a `SELECT`?
+7. Write a `WHILE` loop that inserts the numbers 1 to 10 into a temp table.
+8. Rewrite it as a `REPEAT` loop.
+9. Write a procedure that inserts a student and handles a duplicate id
+   gracefully.
+10. Create an audit trigger recording every deleted student.
+11. Create a `BEFORE INSERT` trigger that upper-cases the city.
+12. Which of `OLD` and `NEW` exists for `INSERT`, `UPDATE` and `DELETE`?
+13. When would you use `BEFORE` rather than `AFTER`?
+14. List your procedures, then drop one.
+15. Name the equivalent of stored procedures in Oracle, PostgreSQL and SQLite.

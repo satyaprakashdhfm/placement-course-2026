@@ -1,13 +1,13 @@
 # Day 2–3 · Database Objects
 
-**Duration:** 2 × 50–60 Minutes  ·  **Tool:** DB Browser for SQLite
+**Duration:** 2 × 50–60 Minutes  ·  **MySQL 8**
 
 ### Learning Outcomes
 - Create, change and remove tables with **`CREATE`**, **`ALTER`**, **`DROP`**.
-- Know why **`TRUNCATE`** does not exist in SQLite and what to use instead.
+- Know the real difference between **`DELETE`**, **`TRUNCATE`** and **`DROP`**.
 - Use every **constraint**: `PRIMARY KEY`, `NOT NULL`, `UNIQUE`, `CHECK`,
-  `DEFAULT`, `FOREIGN KEY`.
-- Choose the right **data type**, and understand SQLite's flexible typing.
+  `DEFAULT`, `FOREIGN KEY`, `AUTO_INCREMENT`.
+- Choose the right **data type**.
 
 ---
 
@@ -17,159 +17,197 @@ Anything the database stores *as a structure*, not as data:
 
 | Object | Purpose | Day |
 |---|---|---|
+| **Database** | A container of tables | today |
 | **Table** | Holds the rows | today |
 | **Constraint** | A rule the data must obey | today |
 | **View** | A saved query that looks like a table | 16 |
 | **Index** | A lookup structure that makes searching fast | 16 |
-| **Trigger** | Code that runs automatically on a change | 17 |
-
-All of these are built with **DDL** — `CREATE`, `ALTER`, `DROP`.
+| **Trigger / Procedure** | Code stored in the database | 17 |
 
 ---
 
 ## 2. Data Types
 
-Every column has a type. SQLite has only **five storage classes**:
-
-| SQLite type | Holds | Write it as |
+| Category | Type | Use for |
 |---|---|---|
-| `INTEGER` | Whole numbers | `INTEGER`, `INT` |
-| `REAL` | Decimal numbers | `REAL`, `FLOAT`, `DOUBLE` |
-| `TEXT` | Strings | `TEXT`, `VARCHAR(50)`, `CHAR(10)` |
-| `BLOB` | Raw bytes (images, files) | `BLOB` |
-| `NULL` | No value at all | — |
+| **Whole numbers** | `TINYINT`, `INT`, `BIGINT` | ids, counts, ages |
+| **Decimals** | `DECIMAL(10,2)`, `FLOAT`, `DOUBLE` | **money → always `DECIMAL`** |
+| **Text** | `CHAR(n)`, `VARCHAR(n)`, `TEXT` | names, addresses |
+| **Dates** | `DATE`, `DATETIME`, `TIMESTAMP`, `TIME`, `YEAR` | joined_on, created_at |
+| **Other** | `BOOLEAN`, `ENUM('a','b')`, `BLOB` | flags, fixed choices, files |
 
-SQLite **accepts** the type names from other databases (`VARCHAR(50)`,
-`DATETIME`, `NUMBER`) and maps them onto these five. So you can write
-MySQL-style SQL and it still works.
+### CHAR vs VARCHAR
 
-### There is no DATE type
+| | `CHAR(10)` | `VARCHAR(10)` |
+|---|---|---|
+| Storage | always 10 characters, padded | only what you use |
+| Best for | fixed length — country codes, `Y`/`N` | **almost everything else** |
 
-SQLite stores dates as **`TEXT`** in the format `'YYYY-MM-DD'`. That format
-sorts correctly as text, which is why it is the one to use. Date functions
-come on Day 9.
-
-### ⚠️ SQLite's flexible typing
-
-Other databases **reject** wrong types. SQLite usually does not:
+### DECIMAL vs FLOAT — money
 
 ```sql
-CREATE TABLE demo (marks INTEGER);
-INSERT INTO demo VALUES ('abc');          -- no error in SQLite!
-SELECT marks, TYPEOF(marks) FROM demo;
+CREATE TABLE money_demo (a FLOAT, b DECIMAL(10,2));
+INSERT INTO money_demo VALUES (0.1 + 0.2, 0.1 + 0.2);
+SELECT a, b, a = 0.3 AS float_equals_point3 FROM money_demo;
 ```
 
 ```text
-marks | TYPEOF(marks)
-------+--------------
-abc   | text
++------+------+---------------------+
+| a    | b    | float_equals_point3 |
++------+------+---------------------+
+|  0.3 | 0.30 |                   0 |
++------+------+---------------------+
 ```
 
-**Key Note:** MySQL and Oracle would refuse this. Never rely on SQLite to catch
-type errors — use a `CHECK` constraint (§6) if the value really matters.
+⚠️ Look carefully. The `FLOAT` column **displays** `0.3` — but the comparison
+`a = 0.3` returned **0**, meaning false. `FLOAT` is **approximate**: the stored
+value is `0.30000001…` and MySQL merely rounds it for display. The `DECIMAL`
+column is exact.
+
+**Never store money in `FLOAT`.** A total that looks right on screen and fails
+every comparison is the worst kind of bug.
+
+### MySQL is strict about types
+
+```sql
+CREATE TABLE t (marks INT);
+INSERT INTO t VALUES ('abc');
+```
+```text
+ERROR 1366 (HY000): Incorrect integer value: 'abc' for column 'marks' at row 1
+```
+
+**Key Note:** SQLite would have **accepted** this. MySQL and PostgreSQL reject
+it. This is one reason code written against SQLite breaks when it moves to a
+real server.
 
 ---
 
-## 3. CREATE TABLE
+## 3. CREATE
 
 ```sql
+CREATE DATABASE IF NOT EXISTS training;
+USE training;
+
 CREATE TABLE courses (
-    course_id   INTEGER PRIMARY KEY,
-    course_name TEXT    NOT NULL,
-    duration    INTEGER,
-    fee         INTEGER
+    course_id   INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    duration    INT,
+    fee         INT
 );
 ```
 
-Read it as: *table name, then one line per column: name, type, rules.*
-
-**Safe version** — does nothing if the table is already there:
+### AUTO_INCREMENT — let MySQL number the rows
 
 ```sql
-CREATE TABLE IF NOT EXISTS courses ( ... );
+CREATE TABLE enquiries (
+    id      INT PRIMARY KEY AUTO_INCREMENT,
+    name    VARCHAR(50),
+    created DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO enquiries (name) VALUES ('Asha'), ('Bala');
+SELECT id, name FROM enquiries;
 ```
+
+```text
++----+------+
+| id | name |
++----+------+
+|  1 | Asha |
+|  2 | Bala |
++----+------+
+```
+
+You never supplied an `id` — MySQL did. `DEFAULT CURRENT_TIMESTAMP` does the
+same for the time.
 
 ---
 
 ## 4. ALTER TABLE
 
-Changes the **structure** of an existing table.
+| What you want | MySQL |
+|---|---|
+| Add a column | `ALTER TABLE students ADD COLUMN email VARCHAR(80);` |
+| **Change a type** | `ALTER TABLE students MODIFY COLUMN email VARCHAR(120);` |
+| **Rename + retype** | `ALTER TABLE students CHANGE COLUMN email email_id VARCHAR(120);` |
+| Rename only | `ALTER TABLE students RENAME COLUMN email_id TO mail;` |
+| Remove a column | `ALTER TABLE students DROP COLUMN mail;` |
+| Rename the table | `ALTER TABLE students RENAME TO learners;` |
+| Add a constraint | `ALTER TABLE students ADD CONSTRAINT chk CHECK (age > 0);` |
 
-| What you want | SQLite | Works? |
-|---|---|---|
-| Add a column | `ALTER TABLE students ADD COLUMN email TEXT;` | ✅ |
-| Rename a column | `ALTER TABLE students RENAME COLUMN email TO email_id;` | ✅ |
-| Remove a column | `ALTER TABLE students DROP COLUMN email_id;` | ✅ (3.35+) |
-| Rename the table | `ALTER TABLE students RENAME TO learners;` | ✅ |
-| **Change a column's type** | `ALTER TABLE students ALTER COLUMN age TEXT;` | ❌ **not supported** |
-| **Add a constraint later** | | ❌ **not supported** |
+**Key Note:** `MODIFY` changes the type only; `CHANGE` changes name **and**
+type, so `CHANGE` always needs the type repeated.
 
-```sql
-ALTER TABLE students ADD COLUMN email TEXT;
-```
-
-### Working around the missing ALTER COLUMN
-
-MySQL/Oracle can change a column's type in place. In SQLite you rebuild:
-
-```sql
-CREATE TABLE students_new (id INTEGER PRIMARY KEY, name TEXT, age TEXT);
-INSERT INTO students_new SELECT id, name, age FROM students;
-DROP TABLE students;
-ALTER TABLE students_new RENAME TO students;
-```
-
-**Key Note:** *create → copy → drop → rename.* Learn this pattern — it is the
-standard SQLite answer, and a common interview question.
+📌 **Dialect corner.** SQLite **cannot** change a column's type at all — you
+rebuild the table (create → copy → drop → rename). PostgreSQL says
+`ALTER TABLE … ALTER COLUMN email TYPE VARCHAR(120)`. Three spellings, one idea.
 
 ---
 
 ## 5. DROP, DELETE and TRUNCATE
 
-Three ways to remove things — **know the difference, it is asked constantly**:
+**Know this table — it is asked in almost every interview:**
 
-| Command | Removes | Structure survives? | Family |
+| | `DELETE` | `TRUNCATE` | `DROP` |
 |---|---|---|---|
-| `DELETE FROM t;` | Rows (can use `WHERE`) | ✅ Yes | DML |
-| `TRUNCATE TABLE t;` | **All** rows, fast, no `WHERE` | ✅ Yes | DDL |
-| `DROP TABLE t;` | Rows **and** the table itself | ❌ Gone | DDL |
+| Removes | rows | **all** rows | rows **and the table** |
+| `WHERE` allowed | ✅ | ❌ | ❌ |
+| Family | DML | DDL | DDL |
+| Speed | slower (row by row, logged) | **fast** (recreates the table) | fast |
+| Resets `AUTO_INCREMENT` | ❌ | ✅ | n/a |
+| Fires triggers | ✅ | ❌ | ❌ |
+| Can be rolled back | ✅ | ❌ | ❌ |
+| Table still exists | ✅ | ✅ | ❌ |
 
 ```sql
 DELETE FROM students WHERE marks < 40;   -- some rows
-DELETE FROM students;                    -- all rows, table stays
+TRUNCATE TABLE students;                 -- all rows, instantly
 DROP TABLE students;                     -- table stops existing
 ```
 
-### ⚠️ TRUNCATE does not exist in SQLite
+### AUTO_INCREMENT proves the difference
 
 ```sql
-TRUNCATE TABLE students;
+INSERT INTO enquiries (name) VALUES ('Chandra');
+DELETE FROM enquiries;
+INSERT INTO enquiries (name) VALUES ('After DELETE');
+SELECT id, name FROM enquiries;
 ```
-
 ```text
-Error: near "TRUNCATE": syntax error
++----+--------------+
+| id | name         |
++----+--------------+
+|  4 | After DELETE |
++----+--------------+
 ```
 
-Use `DELETE FROM students;` instead — SQLite optimises a `WHERE`-less delete
-internally, so it is just as fast.
+```sql
+TRUNCATE TABLE enquiries;
+INSERT INTO enquiries (name) VALUES ('After TRUNCATE');
+SELECT id, name FROM enquiries;
+```
+```text
++----+----------------+
+| id | name           |
++----+----------------+
+|  1 | After TRUNCATE |
++----+----------------+
+```
 
-**For interviews, know the real difference in MySQL/Oracle:**
+After `DELETE` the counter carried on at **4**. After `TRUNCATE` it restarted at
+**1**. That is the clearest demonstration of the difference.
 
-| | `DELETE` | `TRUNCATE` |
-|---|---|---|
-| `WHERE` allowed | ✅ | ❌ |
-| Speed | Slower (row by row, logged) | Faster (deallocates pages) |
-| Can be rolled back | ✅ | ❌ in MySQL/Oracle |
-| Resets AUTO_INCREMENT | ❌ | ✅ |
-| Fires triggers | ✅ | ❌ |
+📌 **Dialect corner.** SQLite has **no `TRUNCATE` at all** — you write
+`DELETE FROM t;`. PostgreSQL has `TRUNCATE`, and unlike MySQL it **can** be
+rolled back inside a transaction.
 
 ---
 
 ## 6. Constraints
 
-A **constraint** is a rule the database enforces. Bad data is rejected before
-it is ever stored — the database protects itself, no matter which program
-writes to it.
+A **constraint** is a rule the database enforces, so bad data is rejected no
+matter which program writes it.
 
 | Constraint | Meaning |
 |---|---|
@@ -179,49 +217,56 @@ writes to it.
 | `CHECK` | Your own condition must be true |
 | `DEFAULT` | Value used when none is given |
 | `FOREIGN KEY` | Must match a row in another table |
+| `AUTO_INCREMENT` | MySQL supplies the next number |
 
 ```sql
 CREATE TABLE enrolments (
-    id        INTEGER PRIMARY KEY,
-    email     TEXT    UNIQUE,
-    name      TEXT    NOT NULL,
-    marks     INTEGER CHECK (marks BETWEEN 0 AND 100),
-    status    TEXT    DEFAULT 'active',
-    course_id INTEGER REFERENCES courses(course_id)
+    id        INT PRIMARY KEY AUTO_INCREMENT,
+    email     VARCHAR(80) UNIQUE,
+    name      VARCHAR(50) NOT NULL,
+    marks     INT CHECK (marks BETWEEN 0 AND 100),
+    status    VARCHAR(10) DEFAULT 'active',
+    course_id INT,
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
 );
 ```
 
-### What each one does when broken
-
-Every message below is the **real** SQLite error:
+### The real error messages
 
 ```sql
 INSERT INTO students (id, name) VALUES (200, NULL);
 ```
 ```text
-NOT NULL constraint failed: students.name
+ERROR 1048 (23000): Column 'name' cannot be null
 ```
 
 ```sql
 INSERT INTO students (id, name) VALUES (101, 'Duplicate');
 ```
 ```text
-UNIQUE constraint failed: students.id
+ERROR 1062 (23000): Duplicate entry '101' for key 'students.PRIMARY'
 ```
 
 ```sql
-INSERT INTO enrolments (id, marks) VALUES (1, 150);
+INSERT INTO enrolments (name, marks) VALUES ('X', 150);
 ```
 ```text
-CHECK constraint failed: marks BETWEEN 0 AND 100
+ERROR 3819 (HY000): Check constraint 'enrolments_chk_1' is violated.
 ```
 
 ```sql
 INSERT INTO students (id, name, course_id) VALUES (201, 'X', 99);
 ```
 ```text
-FOREIGN KEY constraint failed
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails
 ```
+
+📌 **Dialect corner.** `CHECK` is only **enforced** in MySQL **8.0.16+**. Older
+MySQL *parsed and silently ignored* it — a nasty trap on legacy servers. SQLite
+and PostgreSQL have always enforced it.
+
+📌 **Dialect corner.** MySQL and PostgreSQL enforce foreign keys by default.
+**SQLite does not** — it needs `PRAGMA foreign_keys = ON`.
 
 ---
 
@@ -245,25 +290,31 @@ FOREIGN KEY constraint failed
 A foreign key gives **referential integrity**: you cannot enrol a student in
 course 99 if course 99 does not exist.
 
-> ⚠️ **SQLite turns foreign keys OFF by default.** They are only checked if you
-> switch them on:
-> ```sql
-> PRAGMA foreign_keys = ON;
-> ```
-> In DB Browser: **Edit Pragmas** tab → tick **Foreign Keys** → Save.
-> Do this now, or your `FOREIGN KEY` rules will silently do nothing.
+### ON DELETE / ON UPDATE
+
+What should happen to the students when a course is deleted?
+
+```sql
+FOREIGN KEY (course_id) REFERENCES courses(course_id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
+```
+
+| Option | Effect |
+|---|---|
+| `RESTRICT` / `NO ACTION` | Block the delete (**default**) |
+| `CASCADE` | Delete the students too |
+| `SET NULL` | Keep the students, empty their `course_id` |
 
 ---
 
 ## 8. Composite Keys
 
-When one column is not enough to identify a row, use two:
-
 ```sql
 CREATE TABLE attendance (
-    student_id INTEGER,
-    class_date TEXT,
-    present    INTEGER,
+    student_id INT,
+    class_date DATE,
+    present    BOOLEAN,
     PRIMARY KEY (student_id, class_date)
 );
 ```
@@ -273,51 +324,65 @@ One student can appear many times, one date can appear many times, but the
 
 ---
 
-## 9. Common Mistakes
+## 9. Inspecting What You Built
 
-**1. Expecting `TRUNCATE` to work** — it does not exist in SQLite. Use `DELETE FROM`.
+| Command | Shows |
+|---|---|
+| `SHOW DATABASES;` | every database |
+| `SHOW TABLES;` | tables in the current database |
+| `DESCRIBE students;` | columns, types, keys |
+| `SHOW CREATE TABLE students;` | the exact `CREATE` statement |
+| `SHOW INDEX FROM students;` | its indexes |
 
-**2. Forgetting `PRAGMA foreign_keys = ON`** — your foreign keys are decoration
-until you enable them.
-
-**3. `DROP` instead of `DELETE`** — `DROP` destroys the table. There is no undo
-once changes are written.
-
-**4. Two `PRIMARY KEY` columns written separately** — that is an error. For two
-columns use one composite `PRIMARY KEY (a, b)`.
-
-**5. Trusting SQLite's types** — `'abc'` fits happily in an `INTEGER` column.
-
-**6. `NOT NULL` with no `DEFAULT`** — every future `INSERT` must supply it.
+📌 **Dialect corner.** SQLite: `.tables` and `PRAGMA table_info(t)`.
+PostgreSQL: `\dt` and `\d students`.
 
 ---
 
-## 10. Summary
+## 10. Common Mistakes
 
-- **DDL** builds structure: `CREATE`, `ALTER`, `DROP`.
-- SQLite has **5 storage classes** and accepts other databases' type names.
-  Dates are `TEXT` in `'YYYY-MM-DD'`.
-- `ALTER` in SQLite can add, drop and rename columns — but **not change a type**.
-  Work around it with **create → copy → drop → rename**.
-- `DELETE` removes rows · `TRUNCATE` removes all rows (**not in SQLite**) ·
-  `DROP` removes the table.
-- **Constraints** make the database reject bad data: `PRIMARY KEY`, `NOT NULL`,
-  `UNIQUE`, `CHECK`, `DEFAULT`, `FOREIGN KEY`.
-- Foreign keys need **`PRAGMA foreign_keys = ON`** in SQLite.
+**1. `FLOAT` for money** — `0.1 + 0.2 != 0.3`. Use `DECIMAL`.
+
+**2. Expecting `TRUNCATE` to be undoable** — it cannot be rolled back in MySQL.
+
+**3. `DROP` when you meant `DELETE`** — the table is gone.
+
+**4. Assuming `CHECK` works on old MySQL** — silently ignored before 8.0.16.
+
+**5. Forgetting `VARCHAR` needs a length** — `VARCHAR` alone is an error.
+
+**6. Two `PRIMARY KEY` columns declared separately** — use one composite
+`PRIMARY KEY (a, b)`.
 
 ---
 
-## 11. Practice Questions
+## 11. Summary
 
-1. Create a `teachers` table with `teacher_id`, `name` (required), `email`
-   (unique) and `salary` with a `CHECK` that it is above 0.
-2. Add a `phone` column to `teachers`, then rename it to `mobile`.
-3. What is the difference between `DELETE`, `TRUNCATE` and `DROP`?
-4. Why does `TRUNCATE` fail in SQLite, and what do you use instead?
-5. Write the four statements that change a column's type in SQLite.
-6. Give one difference between a primary key and a unique key.
-7. Create a table where the primary key is two columns together.
-8. Turn foreign keys on, then try to insert a student with `course_id = 99`.
-   What is the exact error?
-9. Insert `'hello'` into an `INTEGER` column. Why does SQLite allow it?
-10. Which constraint would stop two students sharing an e-mail address?
+- **DDL** builds structure: `CREATE`, `ALTER`, `DROP`, `TRUNCATE`.
+- Types: `INT`, `DECIMAL` (**money**), `VARCHAR`, `DATE`/`DATETIME`, `BOOLEAN`.
+  MySQL **rejects** wrong types; SQLite does not.
+- `ALTER … MODIFY` changes a type, `CHANGE` renames and retypes.
+- `DELETE` (rows, undoable) · `TRUNCATE` (all rows, fast, resets
+  `AUTO_INCREMENT`) · `DROP` (the table itself).
+- **Constraints** reject bad data: `PRIMARY KEY`, `NOT NULL`, `UNIQUE`,
+  `CHECK`, `DEFAULT`, `FOREIGN KEY`.
+- Foreign keys support `ON DELETE CASCADE` / `SET NULL`.
+
+---
+
+## 12. Practice Questions
+
+1. Create a `teachers` table with `teacher_id` auto-incrementing, `name`
+   required, `email` unique, and `salary` with a `CHECK` above 0.
+2. Insert two teachers without giving an id. What ids do they get?
+3. Add a `phone` column, change it to `VARCHAR(15)`, then rename it to `mobile`.
+4. What is the difference between `MODIFY` and `CHANGE`?
+5. Give four differences between `DELETE` and `TRUNCATE`.
+6. Show with `AUTO_INCREMENT` that `TRUNCATE` resets the counter.
+7. Why must money never be stored in a `FLOAT`?
+8. Create a table where the primary key is two columns.
+9. Try to insert `'abc'` into an `INT`. What is the error? What would SQLite do?
+10. Add a foreign key with `ON DELETE SET NULL` and test it.
+11. Which constraint stops two students sharing an e-mail?
+12. Run `SHOW CREATE TABLE students;` and read it line by line.
+13. Name the SQLite and PostgreSQL equivalents of `DESCRIBE`.

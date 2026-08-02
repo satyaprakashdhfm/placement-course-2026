@@ -29,16 +29,16 @@ function keeps your row count; an aggregate collapses it.
 | `UPPER(s)` | to capitals | `UPPER('sql')` → `SQL` |
 | `LOWER(s)` | to small letters | `LOWER('SQL')` → `sql` |
 | `LENGTH(s)` | number of characters | `LENGTH('Rahul')` → `5` |
-| `SUBSTR(s, start, n)` | part of a string (**starts at 1**) | `SUBSTR('Rahul',1,3)` → `Rah` |
+| `SUBSTRING(s, start, n)` | part of a string (**starts at 1**) | `SUBSTRING('Rahul',1,3)` → `Rah` |
 | `TRIM(s)` | remove outer spaces | `TRIM('  hi  ')` → `hi` |
 | `REPLACE(s, a, b)` | swap text | `REPLACE('a-b','-','+')` → `a+b` |
 | `INSTR(s, x)` | position of x, else 0 | `INSTR('Rahul','h')` → `3` |
-| `s1 \|\| s2` | join two strings | `'a' \|\| 'b'` → `ab` |
+| `CONCAT(a, b, …)` | join strings | `CONCAT('a','b')` → `ab` |
 
 ```sql
 SELECT UPPER(name) AS caps,
        LENGTH(name) AS len,
-       SUBSTR(name, 1, 5) AS first5
+       SUBSTRING(name, 1, 5) AS first5
 FROM students
 LIMIT 3;
 ```
@@ -52,10 +52,12 @@ KARAN PATEL  | 11  | Karan
 ```
 
 **Key Note:** SQL strings are **1-indexed**, not 0-indexed like Python.
-`SUBSTR(name, 1, 5)` is the *first* five characters.
+`SUBSTRING(name, 1, 5)` is the *first* five characters.
 
-Other databases: MySQL uses `CONCAT(a, b)` instead of `||`, and both have
-`SUBSTRING`. The idea is identical.
+📌 **Dialect corner.** MySQL joins strings with **`CONCAT()`**. SQLite,
+PostgreSQL and Oracle use **`||`** — which in MySQL means `OR` and silently
+returns `0`. SQLite spells the substring function `SUBSTR`; MySQL and
+PostgreSQL accept both `SUBSTR` and `SUBSTRING`.
 
 ---
 
@@ -67,7 +69,7 @@ Other databases: MySQL uses `CONCAT(a, b)` instead of `||`, and both have
 | `ABS(n)` | remove the sign | `ABS(-18)` → `18` |
 | `CEIL(n)` / `FLOOR(n)` | up / down to whole | `FLOOR(4.9)` → `4` |
 | `n % m` | remainder | `10 % 3` → `1` |
-| `CAST(x AS INTEGER)` | change type | `CAST('42' AS INTEGER)` → `42` |
+| `CAST(x AS SIGNED)` | change type | `CAST('42' AS SIGNED)` → `42` |
 
 ```sql
 SELECT name,
@@ -86,65 +88,84 @@ Anita Sharma | 104.5  | 35
 Karan Patel  | 41.8   | 22
 ```
 
-> ⚠️ **Integer division.** `SELECT 7 / 2;` gives **3**, not 3.5 — both sides are
-> integers. Force a decimal with `7.0 / 2` or `CAST(7 AS REAL) / 2`.
+> 📌 **Dialect corner — division.** `SELECT 7/2;` gives **`3.5000`** in MySQL:
+> `/` always produces a decimal. Use **`7 DIV 2`** for integer division.
+> In SQLite and PostgreSQL the same `7/2` gives **`3`**, and you write `7.0/2`
+> to get a decimal. **Opposite defaults — check before you trust a total.**
 
 ---
 
 ## 4. Date Functions
 
-SQLite has no `DATE` type — dates are `TEXT` shaped `'YYYY-MM-DD'`.
+MySQL has real **`DATE`**, `DATETIME` and `TIMESTAMP` types — unlike SQLite,
+which stores dates as plain text.
 
 | Function | Does |
 |---|---|
-| `DATE('now')` | today |
-| `DATETIME('now')` | today with the time |
-| `STRFTIME(fmt, d)` | pull a piece out, or reformat |
-| `JULIANDAY(d)` | day number, for subtracting dates |
-| `DATE(d, '+30 days')` | date arithmetic |
+| `CURDATE()` | today |
+| `NOW()` | today with the time |
+| `YEAR(d)`, `MONTH(d)`, `DAY(d)` | pull one piece out |
+| `DATE_FORMAT(d, fmt)` | reformat for display |
+| `DATEDIFF(a, b)` | days between two dates |
+| `DATE_ADD(d, INTERVAL 30 DAY)` | date arithmetic |
 
-| `STRFTIME` code | Gives |
+| `DATE_FORMAT` code | Gives |
 |---|---|
-| `%Y` | year | 
-| `%m` | month | 
+| `%Y` | 4-digit year |
+| `%m` | month number |
 | `%d` | day |
-| `%W` | week of year |
+| `%M` | month name |
 
 ```sql
 SELECT joined_on,
-       STRFTIME('%Y', joined_on) AS yr,
-       STRFTIME('%m', joined_on) AS mth
+       YEAR(joined_on)  AS yr,
+       MONTH(joined_on) AS mth,
+       DATE_FORMAT(joined_on, '%d-%m-%Y') AS pretty
 FROM students
 LIMIT 3;
 ```
 
 ```text
-joined_on  | yr   | mth
------------+------+----
-2025-01-15 | 2025 | 01
-2025-01-20 | 2025 | 01
-2025-02-01 | 2025 | 02
++------------+------+------+------------+
+| joined_on  | yr   | mth  | pretty     |
++------------+------+------+------------+
+| 2025-01-15 | 2025 |    1 | 15-01-2025 |
+| 2025-01-20 | 2025 |    1 | 20-01-2025 |
+| 2025-02-01 | 2025 |    2 | 01-02-2025 |
++------------+------+------+------------+
 ```
 
-Days between two dates:
+Days between two dates is a single function:
 
 ```sql
-SELECT name,
-       CAST(JULIANDAY('2025-06-01') - JULIANDAY(joined_on) AS INTEGER) AS days_enrolled
+SELECT name, DATEDIFF('2025-06-01', joined_on) AS days_enrolled
 FROM students
 LIMIT 3;
 ```
 
 ```text
-name         | days_enrolled
--------------+--------------
-Rahul Verma  | 137
-Anita Sharma | 132
-Karan Patel  | 120
++--------------+---------------+
+| name         | days_enrolled |
++--------------+---------------+
+| Rahul Verma  |           137 |
+| Anita Sharma |           132 |
+| Karan Patel  |           120 |
++--------------+---------------+
 ```
 
-**Key Note:** MySQL uses `YEAR()`, `MONTH()`, `DATEDIFF()`; Oracle uses
-`EXTRACT()` and plain subtraction. Only the function names differ.
+📌 **Dialect corner — dates are where the three differ most.**
+
+| Job | **MySQL** | **SQLite** | **PostgreSQL** |
+|---|---|---|---|
+| Today | `CURDATE()` | `DATE('now')` | `CURRENT_DATE` |
+| Year | `YEAR(d)` | `STRFTIME('%Y', d)` | `EXTRACT(YEAR FROM d)` |
+| Days between | `DATEDIFF(a,b)` | `JULIANDAY(a)-JULIANDAY(b)` | `a - b` |
+| Format | `DATE_FORMAT(d,'%d-%m-%Y')` | `STRFTIME('%d-%m-%Y',d)` | `TO_CHAR(d,'DD-MM-YYYY')` |
+| Add 30 days | `DATE_ADD(d, INTERVAL 30 DAY)` | `DATE(d,'+30 days')` | `d + INTERVAL '30 days'` |
+
+SQLite has **no date type at all** — it keeps text in `'YYYY-MM-DD'` form,
+which sorts correctly but accepts nonsense like `'2025-99-99'`. MySQL rejects
+that.
 
 ---
 
@@ -255,7 +276,7 @@ Meera Nair   | NULL  | Not graded
 
 | Function | Does |
 |---|---|
-| `IFNULL(a, b)` | b if a is null (SQLite/MySQL) |
+| `IFNULL(a, b)` | b if a is null (MySQL and SQLite; **not** PostgreSQL) |
 | `COALESCE(a, b, c, …)` | first non-null — **standard, works everywhere** |
 | `NULLIF(a, b)` | null if a = b, else a |
 
@@ -282,7 +303,7 @@ Meera Nair  | 0     | 4
 Functions nest freely:
 
 ```sql
-SELECT UPPER(SUBSTR(name, 1, 1)) || LOWER(SUBSTR(name, 2)) AS tidy_name
+SELECT UPPER(SUBSTRING(name, 1, 1)) || LOWER(SUBSTRING(name, 2)) AS tidy_name
 FROM students
 LIMIT 3;
 ```
@@ -307,9 +328,9 @@ Read from the **inside out**: take a substring, change its case, then join.
 
 **2. Expecting `AVG` to count NULLs** — it does not. Use `AVG(IFNULL(col,0))`.
 
-**3. `SUBSTR(name, 0, 3)`** — SQL counts from **1**, not 0.
+**3. `SUBSTRING(name, 0, 3)`** — SQL counts from **1**, not 0.
 
-**4. `7 / 2` giving 3** — integer division. Use `7.0 / 2`.
+**4. Assuming `/` truncates** — in MySQL `7/2` is `3.5000`. Use `DIV` for whole numbers.
 
 **5. `WHERE COUNT(*) > 2`** — aggregates are not allowed in `WHERE`. Use
 `HAVING` (Day 11).
@@ -325,7 +346,7 @@ Read from the **inside out**: take a substring, change its case, then join.
 - String: `UPPER`, `LOWER`, `LENGTH`, `SUBSTR` (**1-indexed**), `TRIM`,
   `REPLACE`, `||`.
 - Numeric: `ROUND`, `ABS`, `%`, `CAST`. Watch **integer division**.
-- Dates are `TEXT`; use `STRFTIME` to extract and `JULIANDAY` to subtract.
+- MySQL has a real `DATE` type: `YEAR()`, `DATEDIFF()`, `DATE_FORMAT()`.
 - Aggregates **ignore NULL** — except `COUNT(*)`. `AVG` divides by the count of
   *non-null* values.
 - `CASE` is if/else, first match wins. `COALESCE` is the portable NULL default.
@@ -338,7 +359,7 @@ Read from the **inside out**: take a substring, change its case, then join.
 2. Show the first three letters of each city.
 3. Produce `Rahul Verma - Hyderabad` in one column.
 4. Show marks rounded to the nearest 10 (`ROUND(marks, -1)`).
-5. Show the year and month each student joined.
+5. Show the year and month each student joined, and the date as `dd-mm-yyyy`.
 6. How many days has each student been enrolled, as of `2025-06-01`?
 7. Count the students, count those with marks, and count the distinct cities.
 8. Total, average, highest and lowest marks in one query.
@@ -348,4 +369,4 @@ Read from the **inside out**: take a substring, change its case, then join.
 12. Use `CASE` to show `Senior` for age above 22, else `Junior`.
 13. Replace every missing `course_id` with the text `Unassigned`.
 14. What is the difference between `IFNULL` and `COALESCE`?
-15. Why does `SELECT 7/2` give 3, and how do you get 3.5?
+15. What does `SELECT 7/2` give in MySQL, and what does it give in SQLite?

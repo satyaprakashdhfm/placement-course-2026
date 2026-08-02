@@ -39,9 +39,9 @@
 filters groups after grouping and can.
 
 **2. `DELETE` vs `TRUNCATE` vs `DROP`?**
-`DELETE` removes rows (can use `WHERE`, can be rolled back). `TRUNCATE` removes
-all rows fast, resets auto-increment, cannot be rolled back in most databases.
-`DROP` removes the table itself. *In SQLite, `TRUNCATE` does not exist.*
+`DELETE` removes rows (can use `WHERE`, can be rolled back, fires triggers).
+`TRUNCATE` removes all rows fast, resets `AUTO_INCREMENT`, cannot be rolled
+back in MySQL. `DROP` removes the table itself.
 
 **3. `UNION` vs `UNION ALL`?**
 `UNION` removes duplicates, which costs a sort. `UNION ALL` keeps everything and
@@ -89,7 +89,7 @@ A group of statements that all succeed or all fail.
 
 **15. Procedure vs function?**
 A function must return a value and can be used inside `SELECT`. A procedure
-performs an action and is called with `EXEC`.
+performs an action and is called with `CALL` (MySQL) or `EXEC` (SQL Server).
 
 **16. What is a trigger?**
 Code that runs automatically on `INSERT` / `UPDATE` / `DELETE`, with access to
@@ -102,7 +102,7 @@ another non-key column.
 
 **18. What is a foreign key?**
 A column pointing at another table's primary key, giving referential integrity.
-*In SQLite it needs `PRAGMA foreign_keys = ON`.*
+Supports `ON DELETE CASCADE` / `SET NULL`.
 
 **19. Order of execution of a SELECT?**
 `FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT`.
@@ -154,7 +154,7 @@ Cloud
 SELECT name, city, marks FROM (
     SELECT name, city, marks,
            RANK() OVER (PARTITION BY city ORDER BY marks DESC) AS r
-    FROM students WHERE marks IS NOT NULL)
+    FROM students WHERE marks IS NOT NULL) AS ranked
 WHERE r = 1;
 ```
 
@@ -211,28 +211,40 @@ Do these without looking anything up.
 13. Students scoring more than **every** Kochi student.
 14. Each city's distinctions and fails as two columns.
 15. A view of passing students, then query it.
-16. An index on `marks`; prove it is used with `EXPLAIN QUERY PLAN`.
+16. An index on `marks`; prove it is used with `EXPLAIN` (look at `type`).
 17. Inside a transaction, delete all Pune students, count, then `ROLLBACK`.
 18. A trigger logging every deleted student.
 
 ---
 
-## 5. The SQLite Differences — Say These Confidently
+## 5. Know Your Dialects — Say These Confidently
 
-If an interviewer asks about a feature you never ran, be straight about it and
-show that you know the equivalent. That reads as competence, not a gap.
+If an interviewer asks about a database you have not used, showing you know the
+differences reads as competence, not a gap.
 
-| Feature | SQLite | Everywhere else |
-|---|---|---|
-| `TRUNCATE` | ❌ | Use `DELETE FROM t;` |
-| `ANY` / `ALL` | ❌ | `> ANY` = `> MIN`, `> ALL` = `> MAX`, `= ANY` = `IN` |
-| `ALTER COLUMN` | ❌ | create → copy → drop → rename |
-| Stored procedures / functions | ❌ | Oracle PL/SQL, MySQL stored programs |
-| Triggers | ✅ | same idea |
-| `RIGHT` / `FULL JOIN` | ✅ 3.39+ | same |
-| Window functions | ✅ | same |
-| Foreign keys | ✅ but **off by default** | on by default |
-| Data types | flexible — accepts wrong types | strictly enforced |
+| Feature | **MySQL** (ours) | SQLite | PostgreSQL |
+|---|---|---|---|
+| Join strings | `CONCAT(a,b)` | `a \|\| b` | `a \|\| b` |
+| `7/2` | `3.5000` | `3` | `3` |
+| `TRUNCATE` | ✅ | ❌ | ✅ (rollback-able) |
+| `ANY` / `ALL` | ✅ | ❌ | ✅ |
+| **`FULL OUTER JOIN`** | ❌ **emulate with UNION** | ✅ | ✅ |
+| Stored procedures | ✅ | ❌ none | ✅ PL/pgSQL |
+| Window functions | ✅ 8.0+ | ✅ | ✅ |
+| Auto id | `AUTO_INCREMENT` | `AUTOINCREMENT` | `SERIAL` |
+| Year from date | `YEAR(d)` | `STRFTIME('%Y',d)` | `EXTRACT(YEAR FROM d)` |
+| Query plan | `EXPLAIN` | `EXPLAIN QUERY PLAN` | `EXPLAIN ANALYZE` |
+| `=` on text | case-**insensitive** | case-sensitive | case-sensitive |
+| Wrong data types | rejected | **accepted** | rejected |
+
+**The line to use in an interview:**
+
+> *"I learned on MySQL. The core SQL is the same everywhere — joins, grouping,
+> window functions. The differences I watch for are `CONCAT` vs `||`, the date
+> functions, and that MySQL has no `FULL OUTER JOIN`, so you emulate it with
+> `LEFT` + `UNION` + `RIGHT`."*
+
+Full detail in [DIALECTS.md](DIALECTS.md).
 
 ---
 

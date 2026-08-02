@@ -30,13 +30,15 @@ SELECT * FROM toppers ORDER BY marks DESC;
 ```
 
 ```text
-name         | city      | marks
--------------+-----------+------
-Anita Sharma | Chennai   | 95
-Arjun Mehta  | Pune      | 90
-Vikram Rao   | Hyderabad | 81
-Rahul Verma  | Hyderabad | 78
-Rohit Sinha  | Pune      | 78
++--------------+-----------+-------+
+| name         | city      | marks |
++--------------+-----------+-------+
+| Anita Sharma | Chennai   |    95 |
+| Arjun Mehta  | Pune      |    90 |
+| Vikram Rao   | Hyderabad |    81 |
+| Rahul Verma  | Hyderabad |    78 |
+| Rohit Sinha  | Pune      |    78 |
++--------------+-----------+-------+
 ```
 
 ### Why views?
@@ -60,19 +62,22 @@ SELECT * FROM student_courses WHERE fee > 15000;
 ```
 
 ```text
-name        | city  | course_name | fee
-------------+-------+-------------+------
-Priya Nair  | Kochi | Java        | 20000
-Sneha Iyer  | Chennai | Java      | 20000
-Arjun Mehta | Pune  | DSA         | 25000
-Meera Nair  | Chennai | DSA       | 25000
++-------------+---------+-------------+-------+
+| name        | city    | course_name | fee   |
++-------------+---------+-------------+-------+
+| Priya Nair  | Kochi   | Java        | 20000 |
+| Sneha Iyer  | Chennai | Java        | 20000 |
+| Arjun Mehta | Pune    | DSA         | 25000 |
+| Meera Nair  | Chennai | DSA         | 25000 |
++-------------+---------+-------------+-------+
 ```
 
 **Key Notes:**
 - The view is **always current** — change the table and the view reflects it.
 - Remove one with `DROP VIEW toppers;`
-- Views in SQLite are **read-only**. You cannot `INSERT` into one. (MySQL and
-  Oracle allow updates on simple views.)
+- A **simple** view in MySQL is **updatable** — an `INSERT` into `toppers`
+  really inserts into `students`. Views over joins, `GROUP BY` or `DISTINCT`
+  are not. 📌 In SQLite views are **always read-only**.
 - A view does **not** make anything faster — it runs the same query each time.
   For speed you need an index.
 
@@ -96,23 +101,46 @@ the back of a textbook.
 CREATE INDEX idx_city ON students(city);
 ```
 
-Check that it is being used with `EXPLAIN QUERY PLAN`:
+Check that it is being used with `EXPLAIN`:
 
 ```sql
-EXPLAIN QUERY PLAN SELECT * FROM students WHERE city = 'Pune';
+EXPLAIN SELECT * FROM students WHERE city = 'Pune';
 ```
+
+Before the index:
 
 ```text
-SEARCH students USING INDEX idx_city (city=?)
++----+----------+------+---------------+------+------+-------------+
+| id | table    | type | possible_keys | key  | rows | Extra       |
++----+----------+------+---------------+------+------+-------------+
+|  1 | students | ALL  | NULL          | NULL |   10 | Using where |
++----+----------+------+---------------+------+------+-------------+
 ```
 
-Without the index the same command reports:
+After `CREATE INDEX idx_city ON students(city);`:
 
 ```text
-SCAN students
++----+----------+------+---------------+----------+------+-------+
+| id | table    | type | possible_keys | key      | rows | Extra |
++----+----------+------+---------------+----------+------+-------+
+|  1 | students | ref  | idx_city      | idx_city |    2 | NULL  |
++----+----------+------+---------------+----------+------+-------+
 ```
 
-**`SEARCH … USING INDEX`** = good. **`SCAN`** = reading everything.
+Read the **`type`** and **`rows`** columns:
+
+| | Before | After |
+|---|---|---|
+| `type` | **`ALL`** — full table scan | **`ref`** — index lookup |
+| `key` | `NULL` — no index used | `idx_city` |
+| `rows` | 10 — read everything | 2 — read only what matches |
+
+**`type: ALL` is the warning sign.** On ten rows it does not matter; on ten
+million it is the difference between instant and unusable.
+
+📌 **Dialect corner.** SQLite says `SCAN students` / `SEARCH students USING
+INDEX`. PostgreSQL says `Seq Scan` / `Index Scan`, and `EXPLAIN ANALYZE` there
+actually runs the query and reports real timings.
 
 ### The cost of an index
 
@@ -136,7 +164,8 @@ An index is not free:
 - A `PRIMARY KEY` is indexed **automatically**. So is `UNIQUE`.
 - Multi-column: `CREATE INDEX idx ON students(city, marks);` — helps queries
   filtering on `city`, or on `city` **and** `marks`, but not `marks` alone.
-- Drop with `DROP INDEX idx_city;`
+- Drop with `DROP INDEX idx_city ON students;` — MySQL needs the table name.
+  📌 SQLite and PostgreSQL just say `DROP INDEX idx_city;`
 
 ---
 
@@ -147,7 +176,7 @@ fail. The classic example is a bank transfer — two updates that must never com
 apart:
 
 ```sql
-BEGIN TRANSACTION;
+START TRANSACTION;
     UPDATE accounts SET balance = balance - 1000 WHERE id = 1;
     UPDATE accounts SET balance = balance + 1000 WHERE id = 2;
 COMMIT;
@@ -158,7 +187,7 @@ transaction, nothing is saved until `COMMIT`.
 
 | Command | Does |
 |---|---|
-| `BEGIN TRANSACTION;` | start (also `BEGIN;`) |
+| `START TRANSACTION;` | start (also `BEGIN;`) |
 | `COMMIT;` | make every change permanent |
 | `ROLLBACK;` | undo **everything** since `BEGIN` |
 | `SAVEPOINT name;` | set a marker part-way |
@@ -168,7 +197,7 @@ transaction, nothing is saved until `COMMIT`.
 ### ROLLBACK in action
 
 ```sql
-BEGIN TRANSACTION;
+START TRANSACTION;
 DELETE FROM students WHERE city = 'Pune';
 SELECT COUNT(*) FROM students;      -- 8, the delete has happened...
 ROLLBACK;
@@ -187,7 +216,7 @@ change is permanent — that is what "commit" means.
 ### SAVEPOINT — partial undo
 
 ```sql
-BEGIN TRANSACTION;
+START TRANSACTION;
     INSERT INTO students (id, name, city) VALUES (201, 'Test One', 'Delhi');
     SAVEPOINT after_first;
     INSERT INTO students (id, name, city) VALUES (202, 'Test Two', 'Delhi');
@@ -196,9 +225,11 @@ COMMIT;                             -- Test One is saved
 ```
 
 ```text
-name     | city
----------+------
-Test One | Delhi
++----------+-------+
+| name     | city  |
++----------+-------+
+| Test One | Delhi |
++----------+-------+
 ```
 
 Only `Test Two` was removed. Savepoints let a long process undo one step
@@ -217,21 +248,31 @@ The four guarantees a transaction gives you:
 | **I** — Isolation | Concurrent work does not interfere | Two users do not see each other's half-done work |
 | **D** — Durability | Committed means saved | A power cut after `COMMIT` loses nothing |
 
-**Key Note:** SQLite is fully ACID — the guarantees are not a big-database
+**Key Note:** MySQL is fully ACID — the guarantees are not a big-database
 luxury.
 
-### DB Browser and transactions
+### Workbench and transactions
 
-DB Browser wraps your work in a transaction automatically. That is exactly what
-the toolbar buttons are:
+MySQL runs with **`autocommit = 1`** by default: every statement is its own
+transaction, committed the moment it succeeds. There is no "save" button, and
+no undo.
 
-| Button | SQL equivalent |
-|---|---|
-| **Write Changes** | `COMMIT` |
-| **Revert Changes** | `ROLLBACK` |
+```sql
+SELECT @@autocommit;      -- 1 = on
+```
 
-So the rule from Day 1 — *always click Write Changes* — was really "always
-commit your transaction".
+`ROLLBACK` therefore only does something once you have **explicitly** started a
+transaction with `BEGIN` or `START TRANSACTION`. Outside one, your `DELETE` is
+already permanent.
+
+```sql
+SET autocommit = 0;       -- now nothing saves until you COMMIT
+```
+
+📌 **Dialect corner.** SQLite tools such as DB Browser hold a transaction open
+for you and expose it as a **Write Changes** button (`COMMIT`) and **Revert
+Changes** (`ROLLBACK`). MySQL and PostgreSQL both autocommit by default — the
+safety net is not there, so open transactions yourself before risky work.
 
 ---
 
@@ -253,12 +294,12 @@ commit your transaction".
 
 **2. Indexing every column** — writes slow down and space is wasted for no gain.
 
-**3. Forgetting to `COMMIT`** — in DB Browser, forgetting **Write Changes**.
-Your work is lost when the program closes.
+**3. Assuming you can undo without a transaction** — MySQL autocommits, so a
+`DELETE` outside `BEGIN` is already permanent.
 
 **4. Expecting `ROLLBACK` to undo a committed change** — it cannot.
 
-**5. Inserting into a view in SQLite** — views are read-only there.
+**5. Inserting into a view in MySQL** — views are read-only there.
 
 **6. Indexing a tiny table** — for 10 rows a scan is faster than an index lookup.
 
@@ -267,15 +308,16 @@ Your work is lost when the program closes.
 ## 7. Summary
 
 - A **view** is a stored `SELECT` used like a table. It holds no data, is always
-  current, and is read-only in SQLite. Use it for simplicity, reuse and security.
+  current, and in MySQL is often **updatable**. Use it for simplicity, reuse
+  and security. 📌 In SQLite views are strictly read-only.
 - An **index** is a sorted structure that turns a `SCAN` into a `SEARCH`.
-  Check with `EXPLAIN QUERY PLAN`. It speeds reads and **slows writes** — index
+  Check with `EXPLAIN`. It speeds reads and **slows writes** — index
   what you filter, join or sort on.
 - A **transaction** makes several statements all-or-nothing:
   `BEGIN` → work → `COMMIT` (keep) or `ROLLBACK` (undo).
 - **`SAVEPOINT`** + `ROLLBACK TO` undoes part of a transaction.
 - **ACID** = Atomicity, Consistency, Isolation, Durability.
-- In DB Browser, **Write Changes = COMMIT** and **Revert Changes = ROLLBACK**.
+- MySQL **autocommits**: `ROLLBACK` only helps after an explicit `BEGIN`.
 
 ---
 
@@ -287,7 +329,7 @@ Your work is lost when the program closes.
 4. Drop a view. Does the underlying data change?
 5. Why does a view not make a slow query faster?
 6. Create an index on `students(marks)`.
-7. Run `EXPLAIN QUERY PLAN` for `WHERE marks > 80` before and after. What
+7. Run `EXPLAIN` for `WHERE marks > 80` before and after. What
    changes?
 8. Give two reasons **not** to add an index.
 9. Which two constraints create an index automatically?
@@ -295,5 +337,5 @@ Your work is lost when the program closes.
     `ROLLBACK` and check again.
 11. Use a `SAVEPOINT` to insert two rows and keep only the first.
 12. Explain each letter of ACID in one sentence.
-13. Which DB Browser buttons are `COMMIT` and `ROLLBACK`?
+13. What does `SELECT @@autocommit;` return, and why does it matter?
 14. Can you `ROLLBACK` after a `COMMIT`? Why not?

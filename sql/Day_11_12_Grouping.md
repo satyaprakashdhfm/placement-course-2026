@@ -66,9 +66,9 @@ SELECT city, name, COUNT(*) FROM students GROUP BY city;
 Hyderabad has three students — *which* name should the one row show? The
 question has no answer.
 
-> ⚠️ **SQLite lets this through and picks a name arbitrarily.** MySQL (in strict
+> ⚠️ **MySQL lets this through and picks a name arbitrarily.** MySQL (in strict
 > mode), PostgreSQL, Oracle and SQL Server all **reject it as an error**. Never
-> write it, even though SQLite allows it.
+> write it, even though MySQL allows it.
 
 ---
 
@@ -256,7 +256,7 @@ add `ORDER BY students DESC, band` if you need a fixed order.
 
 ```sql
 SELECT ROUND(AVG(city_avg), 2) AS avg_of_city_averages
-FROM (SELECT AVG(marks) AS city_avg FROM students GROUP BY city);
+FROM (SELECT AVG(marks) AS city_avg FROM students GROUP BY city) AS t;
 ```
 
 ```text
@@ -272,7 +272,7 @@ averages weights small cities equally with big ones. A favourite exam trap.
 
 ## 8. Common Mistakes
 
-**1. A bare column in `SELECT` that is not grouped** — SQLite allows it and
+**1. A bare column in `SELECT` that is not grouped** — MySQL allows it and
 gives an arbitrary value; every other database errors.
 
 **2. Using an aggregate in `WHERE`** — `misuse of aggregate function`. Use

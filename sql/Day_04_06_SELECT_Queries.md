@@ -114,8 +114,9 @@ Karan Patel | Hyderabad | 20
 
 **Key Notes:**
 - Text goes in **single quotes**: `'Hyderabad'`. Double quotes mean a column name.
-- Text comparison is **case sensitive** in SQLite for `=`: `'hyderabad'` finds
-  nothing. Use `WHERE LOWER(city) = 'hyderabad'` to be safe.
+- Text comparison is **case-INsensitive** in MySQL by default: `'hyderabad'`
+  finds Hyderabad. 📌 SQLite and PostgreSQL are case-**sensitive** for `=`, so
+  the same query finds nothing there. Use `LOWER()` when it must be portable.
 - `AND` is evaluated before `OR`. Use brackets when you mix them:
   `WHERE (city='Pune' OR city='Kochi') AND marks > 60`
 
@@ -202,8 +203,9 @@ Rohit Sinha | 78
 Priya Nair  | 66
 ```
 
-**Key Note:** `LIMIT` is SQLite/MySQL/PostgreSQL. Oracle uses
-`FETCH FIRST n ROWS ONLY`, SQL Server uses `TOP n`. Same idea, different word.
+📌 **Dialect corner.** `LIMIT` works in MySQL, SQLite and PostgreSQL. Oracle
+uses `FETCH FIRST n ROWS ONLY`; SQL Server uses `SELECT TOP n`. MySQL also
+accepts the older `LIMIT 3, 3` (offset first) — avoid it, it reads backwards.
 
 ---
 
@@ -252,21 +254,27 @@ Anita Sharma | 95    | 100
 Karan Patel  | 38    | 43
 ```
 
-Arithmetic: `+` `-` `*` `/` `%`. Text is joined with `||`:
+Arithmetic: `+` `-` `*` `/` `%`. Text is joined with **`CONCAT()`**:
 
 ```sql
-SELECT name || ' from ' || city AS description
+SELECT CONCAT(name, ' from ', city) AS description
 FROM students
 LIMIT 3;
 ```
 
 ```text
-description
-------------------------
-Rahul Verma from Hyderabad
-Anita Sharma from Chennai
-Karan Patel from Hyderabad
++----------------------------+
+| description                |
++----------------------------+
+| Rahul Verma from Hyderabad |
+| Anita Sharma from Chennai  |
+| Karan Patel from Hyderabad |
++----------------------------+
 ```
+
+> ⚠️ **Do not use `||` in MySQL.** In SQLite and PostgreSQL `||` joins strings,
+> but in MySQL it means **OR** — `SELECT 'a' || 'b';` returns `0`, with no
+> error. This is the single most common mistake when moving between them.
 
 **Key Note:** the table is **not** changed. `marks + 5` only affects what is
 displayed. To change stored data you need `UPDATE`.
@@ -307,7 +315,7 @@ all_rows | rows_with_marks
 
 `COUNT(*)` counts rows; `COUNT(column)` **skips NULLs**. Remember this for Day 11.
 
-To substitute a value, use `IFNULL` (SQLite) / `COALESCE` (everywhere):
+To substitute a value, use `IFNULL` (MySQL) / `COALESCE` (everywhere):
 
 ```sql
 SELECT name, IFNULL(marks, 0) AS marks FROM students WHERE id = 110;
@@ -328,10 +336,10 @@ Meera Nair | 0
 **2. Using an alias in `WHERE`** — it does not exist yet. Repeat the expression
 or use a subquery.
 
-**3. Double quotes around text** — `WHERE city = "Pune"` looks for a *column*
-called Pune. Use single quotes.
+**3. Double quotes around text** — MySQL tolerates `"Pune"`, but in PostgreSQL
+and standard SQL double quotes mean a *column name*. Always use single quotes.
 
-**4. `==` instead of `=`** — SQLite tolerates `==`, other databases reject it.
+**4. `==` instead of `=`** — MySQL tolerates `==`, other databases reject it.
 Write `=`.
 
 **5. Expecting rows in order without `ORDER BY`.**

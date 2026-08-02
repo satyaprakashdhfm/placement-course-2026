@@ -115,7 +115,7 @@ Treat a query's result as a temporary table:
 SELECT city, avg_marks
 FROM (SELECT city, ROUND(AVG(marks), 2) AS avg_marks
       FROM students
-      GROUP BY city)
+      GROUP BY city) AS city_stats
 WHERE avg_marks > 70;
 ```
 
@@ -128,6 +128,10 @@ Pune    | 84.0
 
 This is how you filter on an aggregate of an aggregate, or apply two levels of
 grouping.
+
+> ⚠️ **MySQL requires the alias** (`AS city_stats`). Leave it out and you get
+> *"Every derived table must have its own alias"*. 📌 SQLite and PostgreSQL
+> allow an unnamed derived table — another reason SQLite code fails on MySQL.
 
 ---
 
@@ -143,6 +147,11 @@ grouping.
 ---
 
 ## 5. Window Functions — Keeping the Rows
+
+> ⚠️ **Window functions need MySQL 8.0+.** On MySQL 5.7 they are a syntax
+> error, and you emulate ranking with user variables — an ugly trick you may
+> still meet on older systems. 📌 SQLite has had them since 3.25, PostgreSQL
+> since 8.4.
 
 An **aggregate** collapses rows. A **window function** performs the same kind of
 calculation but **keeps every row**:
@@ -286,7 +295,7 @@ SELECT name, city, marks
 FROM (SELECT name, city, marks,
              RANK() OVER (PARTITION BY city ORDER BY marks DESC) AS r
       FROM students
-      WHERE marks IS NOT NULL)
+      WHERE marks IS NOT NULL) AS ranked
 WHERE r = 1;
 ```
 

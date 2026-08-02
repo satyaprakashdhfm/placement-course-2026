@@ -9,8 +9,8 @@
 - Combine result **sets** with **`UNION`** and `UNION ALL`.
 - Tell a **join** (sideways, more columns) from a **union** (downwards, more rows).
 
-> ⚠️ `RIGHT JOIN` and `FULL OUTER JOIN` need **SQLite 3.39+** (2022). If you get
-> a syntax error, download the current DB Browser.
+> ⚠️ **MySQL has no `FULL OUTER JOIN`** — see §5 for the standard workaround.
+> `RIGHT JOIN` works fine.
 
 ---
 
@@ -126,24 +126,55 @@ Cloud has no students, so it survives with a `NULL` name.
 
 ---
 
-## 5. FULL OUTER JOIN — Keep Both Sides
+## 5. FULL OUTER JOIN — Which MySQL Does Not Have
+
+A full outer join keeps **both** unmatched sides: the student with no course
+**and** the course with no students.
 
 ```sql
 SELECT s.name, c.course_name
 FROM students s
-FULL OUTER JOIN courses c ON s.course_id = c.course_id
-WHERE s.name IS NULL OR c.course_name IS NULL;
+FULL OUTER JOIN courses c ON s.course_id = c.course_id;
 ```
 
 ```text
-name        | course_name
-------------+------------
-Rohit Sinha | NULL
-NULL        | Cloud
+ERROR 1064 (42000): You have an error in your SQL syntax ... near 'OUTER JOIN courses'
 ```
 
-Both unmatched sides show up: the student with no course **and** the course
-with no students.
+⚠️ **MySQL has no `FULL OUTER JOIN`.** PostgreSQL and SQLite (3.39+) do. You
+emulate it with `LEFT` + `UNION` + `RIGHT` — **memorise this, it is a standard
+interview question:**
+
+```sql
+SELECT s.name, c.course_name
+FROM students s LEFT JOIN courses c ON s.course_id = c.course_id
+UNION
+SELECT s.name, c.course_name
+FROM students s RIGHT JOIN courses c ON s.course_id = c.course_id;
+```
+
+```text
++--------------+-------------+
+| name         | course_name |
++--------------+-------------+
+| Rahul Verma  | Python      |
+| Anita Sharma | SQL         |
+| Karan Patel  | Python      |
+| Priya Nair   | Java        |
+| Vikram Rao   | SQL         |
+| Sneha Iyer   | Java        |
+| Arjun Mehta  | DSA         |
+| Divya Menon  | Python      |
+| Rohit Sinha  | NULL        |
+| NULL         | Cloud       |
+| Meera Nair   | DSA         |
++--------------+-------------+
+```
+
+Eleven rows: the ten students, plus Cloud. Both orphans are present.
+
+**Key Note:** use `UNION`, **not** `UNION ALL`. The matching rows appear in both
+halves, and `UNION` removes the duplicates. `UNION ALL` would list them twice.
 
 ### The four joins side by side
 
@@ -154,16 +185,16 @@ with no students.
    │   │▓▓▓│        │▓▓▓│▓▓▓│        │   │▓▓▓│        │▓▓▓│▓▓▓│
    └───┴───┘        └───┴───┘        └───┴───┘        └───┴───┘
    only matches     all left +       all right +      everything
-                    matches          matches
+                    matches          matches          (not in MySQL)
 ```
 
-| Join | Keeps |
-|---|---|
-| `INNER` | rows matching in **both** |
-| `LEFT` | **all** left rows + matches |
-| `RIGHT` | **all** right rows + matches |
-| `FULL OUTER` | **all** rows from both |
-| `CROSS` | every combination (10 × 5 = 50 rows) |
+| Join | Keeps | MySQL |
+|---|---|---|
+| `INNER` | rows matching in **both** | ✅ |
+| `LEFT` | **all** left rows + matches | ✅ |
+| `RIGHT` | **all** right rows + matches | ✅ |
+| `FULL OUTER` | **all** rows from both | ❌ emulate with `UNION` |
+| `CROSS` | every combination (10 × 5 = 50 rows) | ✅ |
 
 ---
 
@@ -336,7 +367,8 @@ LEFT JOIN students s ON s.course_id = c.course_id AND s.marks > 50
 
 - A **join** widens the result; a **union** lengthens it.
 - `INNER` keeps matches only · `LEFT` keeps all of the left · `RIGHT` keeps all
-  of the right · `FULL OUTER` keeps everything · `CROSS` pairs everything.
+  of the right · `CROSS` pairs everything.
+- **MySQL has no `FULL OUTER JOIN`**: use `LEFT` `UNION` `RIGHT`.
 - `A RIGHT JOIN B` = `B LEFT JOIN A`. Prefer `LEFT` for readability.
 - **`LEFT JOIN … WHERE right IS NULL`** finds unmatched rows.
 - A **self join** needs two aliases for the same table.
@@ -352,6 +384,7 @@ LEFT JOIN students s ON s.course_id = c.course_id AND s.marks > 50
 3. Find students who have no course.
 4. Find courses nobody has joined (two ways: `RIGHT JOIN`, and `LEFT JOIN` from
    `courses`).
+4b. Write a full outer join of students and courses without `FULL OUTER JOIN`.
 5. Show students on courses costing more than ₹15,000.
 6. Count the students on each course, including empty courses.
 7. Why must that count use `COUNT(s.id)` and not `COUNT(*)`?

@@ -5,7 +5,7 @@
 ### Learning Outcomes
 - Use **comparison** and **logical** operators, and know their precedence.
 - Filter with **`IN`**, **`BETWEEN`**, **`LIKE`**, **`EXISTS`**.
-- Know what **`ANY`** and **`ALL`** do, and what to write instead in SQLite.
+- Know what **`ANY`** and **`ALL`** do, and what to write instead in MySQL.
 - Understand **three-valued logic** — `TRUE`, `FALSE`, and `NULL`.
 
 ---
@@ -181,9 +181,9 @@ Rahul Verma
 Rohit Sinha
 ```
 
-**Key Note:** in SQLite, `LIKE` is **case-insensitive for ASCII letters** —
-`'r%'` finds Rahul too. In PostgreSQL it is case-**sensitive** (`ILIKE` is the
-insensitive version). Do not rely on either; use `LOWER()` when it matters.
+📌 **Dialect corner.** In MySQL, `LIKE` is **case-insensitive** — `'r%'` finds
+Rahul too. SQLite is also insensitive for `LIKE`. PostgreSQL is case-**sensitive**
+(`ILIKE` is its insensitive version). Use `LOWER()` when it must be portable.
 
 ---
 
@@ -249,19 +249,32 @@ These compare a value against **every** result of a subquery.
 | `x > ANY (subquery)` | x is greater than **at least one** value |
 | `x > ALL (subquery)` | x is greater than **every** value |
 
-### ⚠️ SQLite does not support ANY / ALL
+### They work in MySQL
 
 ```sql
-SELECT name FROM students WHERE marks > ANY (SELECT marks FROM students WHERE city='Kochi');
+SELECT name, marks FROM students
+WHERE marks > ANY (SELECT marks FROM students WHERE city = 'Kochi');
 ```
 
 ```text
-Error: near "SELECT": syntax error
++--------------+-------+
+| name         | marks |
++--------------+-------+
+| Rahul Verma  |    78 |
+| Anita Sharma |    95 |
+| Priya Nair   |    66 |
+| Vikram Rao   |    81 |
+| Sneha Iyer   |    54 |
+| Arjun Mehta  |    90 |
+| Rohit Sinha  |    78 |
++--------------+-------+
 ```
 
-**Write this instead** — the result is identical everywhere:
+📌 **Dialect corner.** PostgreSQL supports `ANY`/`ALL` too, but **SQLite does
+not** — there you must rewrite them. The rewrites are worth knowing anyway,
+because they say plainly what the operators mean:
 
-| Instead of | Use |
+| Instead of | Write |
 |---|---|
 | `= ANY (sub)` | `IN (sub)` |
 | `<> ALL (sub)` | `NOT IN (sub)` |
@@ -269,7 +282,7 @@ Error: near "SELECT": syntax error
 | `> ALL (sub)` | `> (SELECT MAX(...) FROM ...)` |
 
 ```sql
--- "> ANY" -> beat the WEAKEST Kochi student
+-- "> ANY" is the same as beating the WEAKEST Kochi student
 SELECT name, marks FROM students
 WHERE marks > (SELECT MIN(marks) FROM students WHERE city = 'Kochi');
 ```
@@ -354,7 +367,8 @@ SELECT name FROM students WHERE marks <> 78 OR marks IS NULL;
 
 **3. `BETWEEN` with the bigger number first** — always empty.
 
-**4. Using `ANY` / `ALL` in SQLite** — syntax error. Use `MIN`/`MAX`/`IN`.
+**4. Using `ANY` / `ALL` and then moving to SQLite** — they do not exist there.
+Know the `MIN`/`MAX`/`IN` rewrites.
 
 **5. Forgetting NULL rows vanish** from `<>` comparisons.
 
@@ -371,8 +385,8 @@ SELECT name FROM students WHERE marks <> 78 OR marks IS NULL;
   `LIKE` = pattern with `%` (many) and `_` (one).
 - `EXISTS` tests whether related rows exist and is **NULL-safe**;
   `NOT IN` is not.
-- `ANY` / `ALL` **do not exist in SQLite** — `> ANY` is `> MIN`,
-  `> ALL` is `> MAX`, `= ANY` is `IN`.
+- `ANY` / `ALL` work in MySQL and PostgreSQL, **not in SQLite**. `> ANY` is
+  `> MIN`, `> ALL` is `> MAX`, `= ANY` is `IN`.
 - SQL logic has **three** values; a `WHERE` keeps only rows that are TRUE.
 
 ---
@@ -392,4 +406,4 @@ SELECT name FROM students WHERE marks <> 78 OR marks IS NULL;
 11. Students who scored more than **any one** Kochi student.
 12. Why does `WHERE marks <> 78` leave out the student with no marks?
 13. Why is `NOT EXISTS` safer than `NOT IN`?
-14. What does SQLite give you for `ANY`, and what do you write instead?
+14. Rewrite an `ANY` and an `ALL` query without using those keywords.

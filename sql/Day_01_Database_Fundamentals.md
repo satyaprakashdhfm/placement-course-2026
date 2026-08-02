@@ -1,6 +1,6 @@
 # Day 1 · Database Fundamentals
 
-**Duration:** 50–60 Minutes  ·  **Tool:** DB Browser for SQLite
+**Duration:** 50–60 Minutes  ·  **Tool:** MySQL 8 + MySQL Workbench
 
 ### Learning Outcomes
 - Understand what a **database** is and why files and Excel are not enough.
@@ -8,9 +8,8 @@
 - Understand **tables, rows, columns, keys**.
 - Know what **SQL** is and its five command families.
 - Follow the **SQL execution flow** — what happens when you press Run.
-- Know the difference between **SQL** and **SQLite**, and why learning SQLite
-  teaches you SQL everywhere.
-- Install **DB Browser for SQLite** and create your first database.
+- Know how **MySQL**, **SQLite** and **PostgreSQL** relate to each other.
+- Install **MySQL** and run your first query.
 
 ---
 
@@ -64,9 +63,7 @@ can be **related** to each other. This is the model that won.
 | Relationships | Not supported | Supported, with **keys** |
 | Redundancy | High | Low (normalisation) |
 | Language | Varies | **SQL** |
-| Examples | Older file systems | **SQLite**, MySQL, PostgreSQL, Oracle, SQL Server |
-
-**Key Note:** every database you will use in this course is an **RDBMS**.
+| Examples | Older file systems | **MySQL**, PostgreSQL, SQLite, Oracle, SQL Server |
 
 ---
 
@@ -96,7 +93,7 @@ A **table** holds one kind of thing. Students in one table, courses in another.
 
 | Key | Meaning |
 |---|---|
-| **Primary key** | Uniquely identifies each row. Never repeats, never empty. `id` |
+| **Primary key** | Uniquely identifies each row. Never repeats, never empty |
 | **Foreign key** | A column that points to the primary key of another table |
 | **Composite key** | A primary key made of two or more columns together |
 | **Unique key** | Must be unique, but *can* be empty, and there can be many |
@@ -123,8 +120,8 @@ You never tell the database how to search. It works that out itself.
 - SQL keywords are **not case sensitive** (`SELECT` = `select`), but writing
   keywords in CAPITALS is the normal style.
 - Every statement ends with a **semicolon** `;`.
-- SQL is a **standard** (ANSI SQL). Every database supports the core of it,
-  and then adds its own extras.
+- SQL is a **standard** (ANSI SQL). Every database supports the core of it, and
+  then adds its own extras.
 
 ---
 
@@ -132,11 +129,11 @@ You never tell the database how to search. It works that out itself.
 
 | Family | Full name | Commands | Purpose |
 |---|---|---|---|
-| **DDL** | Data **Definition** Language | `CREATE`, `ALTER`, `DROP` | Build and change the *structure* |
+| **DDL** | Data **Definition** Language | `CREATE`, `ALTER`, `DROP`, `TRUNCATE` | Build and change the *structure* |
 | **DML** | Data **Manipulation** Language | `INSERT`, `UPDATE`, `DELETE` | Change the *data* |
 | **DQL** | Data **Query** Language | `SELECT` | Read the data |
 | **TCL** | **Transaction** Control Language | `COMMIT`, `ROLLBACK`, `SAVEPOINT` | Confirm or undo a batch of changes |
-| **DCL** | Data **Control** Language | `GRANT`, `REVOKE` | Permissions (not in SQLite — see §9) |
+| **DCL** | Data **Control** Language | `GRANT`, `REVOKE` | Permissions |
 
 Remember it as: **DDL builds the box, DML fills the box, DQL reads the box.**
 
@@ -185,155 +182,156 @@ This surprises everybody. You **write** a query in one order and the database
 | `LIMIT` | 7 |
 
 `FROM` runs **first** — the database must fetch the table before it can filter
-it. `SELECT` runs almost **last**. This explains a rule you will meet on Day 11:
+it. `SELECT` runs almost **last**. This explains a rule you will meet on Day 4:
 you cannot use a `SELECT` alias inside `WHERE`, because `WHERE` ran first.
 
 ---
 
-## 8. SQL vs SQLite — What is the Difference?
+## 8. MySQL, SQLite, PostgreSQL — The Same Language
 
-This confuses everyone at the start, so be clear:
-
-> **SQL is the language. SQLite is a program that speaks it.**
+> **SQL is the language. MySQL is a program that speaks it.**
 
 ```text
                     SQL  (the language, a standard)
                      │
       ┌──────────┬───┴────┬───────────┬──────────┐
-   SQLite     MySQL   PostgreSQL   Oracle    SQL Server
+   MySQL     SQLite   PostgreSQL   Oracle    SQL Server
       └──────────┴────────┴───────────┴──────────┘
               all speak SQL, with small accents
 ```
 
 Compare it to English: British and American English are the **same language**
-with small spelling differences. SQLite and Oracle are the same for the
-**things you are learning**.
+with small spelling differences.
 
-| | SQLite | MySQL / Oracle / SQL Server |
+| | **MySQL** | **SQLite** | **PostgreSQL** |
+|---|---|---|---|
+| Type | Client–**server** | **Serverless**, one file | Client–**server** |
+| Setup | Install server, set password | Just a file | Install server, create role |
+| Port | 3306 | none | 5432 |
+| Used for | **Most web applications** | Phones, browsers, tests | Analytics, complex data |
+| Typing | strict | flexible | strictest |
+
+**We teach MySQL because it is the one you are most likely to meet at work.**
+
+Around **90% of what you learn transfers directly** — `SELECT`, `WHERE`,
+`JOIN`, `GROUP BY`, `HAVING`, subqueries and window functions are identical.
+The differences are in the edges: function names, and a few features.
+
+Three you will meet immediately:
+
+| Job | MySQL | SQLite / PostgreSQL |
 |---|---|---|
-| Type | **Serverless** — a library inside your app | Client–**server** |
-| The database is | **One single file** (`training.db`) | A service with data directories |
-| Setup | Download and open | Install server, create user, start service |
-| Login | None | Username, password, port |
-| Size it suits | Small to medium, phones, apps, learning | Large multi-user systems |
-| The SQL you write | **Almost identical** | **Almost identical** |
+| Join two strings | `CONCAT(a, b)` | `a \|\| b` |
+| Today's date | `CURDATE()` | `DATE('now')` / `CURRENT_DATE` |
+| Year from a date | `YEAR(d)` | `STRFTIME('%Y',d)` / `EXTRACT(...)` |
 
-### Does learning SQLite teach me real SQL?
-
-**Yes.** Around **95% of what you learn transfers directly.** Everything in this
-syllabus — `SELECT`, `WHERE`, `ORDER BY`, `JOIN`, `GROUP BY`, `HAVING`,
-subqueries, window functions, views, indexes, transactions — is **the same SQL**
-in every database. Learn it here, use it anywhere.
-
-### The honest list of what differs
-
-These were tested on **SQLite 3.50.4**, the version DB Browser ships today:
-
-| Topic | SQLite | Note |
-|---|---|---|
-| `SELECT`, `WHERE`, `ORDER BY`, `LIMIT` | ✅ Same | |
-| `IN`, `BETWEEN`, `LIKE`, `EXISTS` | ✅ Same | |
-| `GROUP BY`, `HAVING`, aggregates | ✅ Same | |
-| `INNER` / `LEFT` / `RIGHT` / `FULL` / `SELF` join | ✅ Same | `RIGHT`/`FULL` need SQLite **3.39+** — update DB Browser if they fail |
-| `UNION`, subqueries | ✅ Same | |
-| Window functions (`ROW_NUMBER`, `RANK`, `DENSE_RANK`) | ✅ Same | |
-| Views, Indexes | ✅ Same | |
-| Transactions (`COMMIT`, `ROLLBACK`, `SAVEPOINT`) | ✅ Same | |
-| Triggers | ✅ Same | |
-| **`TRUNCATE TABLE`** | ❌ **Missing** | Use `DELETE FROM table;` — same result |
-| **`ANY` / `ALL`** | ❌ **Missing** | Use `IN` or `MAX()`/`MIN()` instead |
-| **`ALTER TABLE ... ALTER COLUMN`** | ❌ **Missing** | Can `ADD`/`DROP`/`RENAME` a column only |
-| **Stored procedures, `DECLARE`, loops (PL/SQL)** | ❌ **Missing** | SQLite has no procedural language at all |
-| Data types | ⚠️ Flexible | SQLite will accept text in an `INTEGER` column |
-| `GRANT` / `REVOKE` (DCL) | ❌ Missing | There are no users to grant to — file permissions instead |
-
-**Key Note:** you will be told each time we reach one of these, and shown the
-equivalent used in MySQL and Oracle, so an interview never catches you out.
+📖 **The full comparison is in [DIALECTS.md](DIALECTS.md).** Read it once now,
+and again before an interview.
 
 ---
 
-## 9. Why DB Browser for SQLite?
+## 9. Installing MySQL
 
-For learning, the tool must not get in the way. With DB Browser there is:
-
-- ✅ **No MySQL Server** to install
-- ✅ **No Oracle** installation (which is several GB)
-- ✅ **No usernames or passwords**
-- ✅ **No port 3306** or connection strings
-- ✅ **No service** to start and stop
-- ✅ **No admin rights** needed on the lab computers
-
-Everything is stored in **one file** that you can copy to a pen drive, e-mail to
-yourself, or submit as homework. If you break it, delete it and make a new one.
-
-That means **100% of the class time goes on SQL**, not on setup problems.
-
----
-
-## 10. Installation — Step by Step
-
-**Step 1.** Download DB Browser for SQLite from:
+**Step 1.** Download the **MySQL Installer for Windows** from:
 
 ```text
-https://sqlitebrowser.org/dl/
+https://dev.mysql.com/downloads/installer/
 ```
 
-Pick the **standard installer for Windows** (64-bit for most machines).
+Choose the larger *(mysql-installer-community)* file so you do not need
+internet during setup.
 
-**Step 2.** Run the installer: **Next → Next → Install → Finish**.
+**Step 2.** Run it and choose the **Developer Default** setup type. That
+installs:
 
-**Step 3.** Open the application from the Start menu
-(*DB Browser for SQLite*).
+- **MySQL Server** — the database itself
+- **MySQL Workbench** — the graphical tool you will use in class
+- MySQL Shell and connectors
 
-**Step 4.** Click **New Database**.
+**Step 3.** Keep clicking **Next**, and at **Type and Networking** leave the
+port as **3306**.
 
-**Step 5.** Save it as:
+**Step 4.** At **Accounts and Roles**, set a **root password**.
 
-```text
-training.db
-```
+> ⚠️ **Write this password down.** There is no easy recovery, and you will need
+> it every time you connect. For class, something simple like `root` is fine —
+> never do that on a real server.
 
-Put it somewhere you will find again, for example `Documents\SQL_Course\`.
+**Step 5.** Leave **Configure MySQL Server as a Windows Service** ticked, so
+the database starts with your computer.
 
-**Step 6.** A *Create Table* window pops up — click **Cancel** for now. We will
-create tables with SQL instead of clicking.
+**Step 6.** Finish, then open **MySQL Workbench**. You will see a connection
+tile called **Local instance MySQL80**. Click it and enter your root password.
 
-You are ready to write SQL. That is the whole setup.
+You are connected.
 
----
+### If the installer is a problem
 
-## 11. The DB Browser Window
+Two lighter alternatives, both fine for this course:
 
-Four tabs matter:
-
-| Tab | What it is for |
+| Option | Notes |
 |---|---|
-| **Database Structure** | The list of your tables, columns and indexes |
-| **Browse Data** | A spreadsheet-like view of the rows in one table |
-| **Edit Pragmas** | Engine settings — ignore for now |
-| **Execute SQL** | **Where you will live.** Type SQL, press ▶ to run |
+| **XAMPP** | Includes MySQL (MariaDB) + phpMyAdmin. Very quick to install |
+| **Docker** | `docker run -d -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root mysql:8` |
 
-To run a query: go to **Execute SQL**, type it, then press
-**Ctrl + Return** (or the ▶ button).
+---
 
-> ⚠️ **The most common beginner mistake.** After changing data, click
-> **Write Changes** (Ctrl+S) in the toolbar. Until you do, your changes are
-> only held in memory — close the program and they are gone.
-> **Revert Changes** throws them away on purpose.
+## 10. The Workbench Window
+
+| Area | What it is for |
+|---|---|
+| **Navigator (left)** | Your databases, tables, views, procedures |
+| **Query tab (middle)** | Where you type SQL |
+| **Result grid (bottom)** | The rows that come back |
+| **Output panel** | Success / error messages and timings |
+
+To run SQL: type it, then press **Ctrl + Enter** (current statement) or
+**Ctrl + Shift + Enter** (the whole tab).
+
+**Key Notes:**
+- Unlike a file-based tool, **MySQL saves as you go** — there is no
+  "write changes" button. An `INSERT` that succeeds is stored.
+- The one exception is when you open a **transaction** yourself — see Day 16.
+- ⚠️ Workbench has a **safe update mode** on by default: it refuses `UPDATE` or
+  `DELETE` without a `WHERE` on a key column. If you hit *"Error 1175"*, that is
+  why. Turn it off with:
+  ```sql
+  SET SQL_SAFE_UPDATES = 0;
+  ```
+
+---
+
+## 11. Databases Inside the Server
+
+Unlike a single file, one MySQL server holds **many databases**. So you must
+say which one you mean:
+
+```sql
+CREATE DATABASE training;
+USE training;
+SHOW DATABASES;
+SHOW TABLES;
+```
+
+`USE training;` sets the current database for the rest of your session. Forget
+it and you get *"No database selected"*.
 
 ---
 
 ## 12. Your First SQL
 
-Open **Execute SQL** and run these one at a time.
+Run these one at a time in Workbench.
 
 **Create a table (DDL):**
 
 ```sql
+CREATE DATABASE IF NOT EXISTS training;
+USE training;
+
 CREATE TABLE students (
-    id     INTEGER PRIMARY KEY,
-    name   TEXT    NOT NULL,
-    marks  INTEGER
+    id     INT PRIMARY KEY,
+    name   VARCHAR(50) NOT NULL,
+    marks  INT
 );
 ```
 
@@ -352,14 +350,14 @@ INSERT INTO students (id, name, marks) VALUES
 SELECT * FROM students;
 ```
 
-Expected result:
-
 ```text
-id   | name          | marks
------+---------------+------
-101  | Rahul Verma   | 78
-102  | Anita Sharma  | 95
-103  | Karan Patel   | 38
++-----+--------------+-------+
+| id  | name         | marks |
++-----+--------------+-------+
+| 101 | Rahul Verma  |    78 |
+| 102 | Anita Sharma |    95 |
+| 103 | Karan Patel  |    38 |
++-----+--------------+-------+
 ```
 
 **Ask a real question:**
@@ -372,31 +370,52 @@ ORDER BY marks DESC;
 ```
 
 ```text
-name          | marks
---------------+------
-Anita Sharma  | 95
-Rahul Verma   | 78
++--------------+-------+
+| name         | marks |
++--------------+-------+
+| Anita Sharma |    95 |
+| Rahul Verma  |    78 |
++--------------+-------+
 ```
 
-Now click **Write Changes**. Your database is saved.
+**See what a table looks like:**
+
+```sql
+DESCRIBE students;
+```
+
+```text
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| id    | int         | NO   | PRI | NULL    |       |
+| name  | varchar(50) | NO   |     | NULL    |       |
+| marks | int         | YES  |     | NULL    |       |
++-------+-------------+------+-----+---------+-------+
+```
 
 ---
 
 ## 13. Common Mistakes
 
-**1. Forgetting the semicolon** — DB Browser is forgiving with one statement,
-but running several at once needs `;` between them.
+**1. Forgetting `USE training;`** — *"No database selected"*.
 
-**2. Forgetting Write Changes** — your work looks fine, then vanishes when you
-close the program.
+**2. Forgetting the semicolon** — Workbench waits for you to finish the
+statement.
 
-**3. Using double quotes for text** — SQL text uses **single quotes**:
-`'Rahul'`. Double quotes mean a column *name*.
+**3. Using `||` to join strings** — in MySQL that means **OR** and quietly
+returns `0`. Use `CONCAT(a, b)`.
 
-**4. `=` vs `==`** — SQL comparison is a **single** `=`, not `==` like Python.
+**4. Using double quotes for text** — SQL text uses **single quotes**:
+`'Rahul'`. (MySQL tolerates `"Rahul"`, but PostgreSQL will not — build the
+right habit.)
 
-**5. Expecting SQLite to reject wrong types** — it will happily store `'abc'`
-in an `INTEGER` column. Other databases refuse. Do not rely on it.
+**5. `=` vs `==`** — SQL comparison is a **single** `=`.
+
+**6. Error 1175 on `UPDATE`/`DELETE`** — Workbench safe update mode. Add a
+`WHERE`, or `SET SQL_SAFE_UPDATES = 0;`.
+
+**7. Losing the root password** — there is no easy way back.
 
 ---
 
@@ -405,16 +424,15 @@ in an `INTEGER` column. Other databases refuse. Do not rely on it.
 - A **database** solves searching, duplication, validation, relationships,
   multi-user access and crash safety — things files and Excel cannot.
 - A **DBMS** manages the database; an **RDBMS** stores it as **related tables**.
-- Data lives in **tables** made of **rows** and **columns**, identified by a
+- Data lives in **tables** of **rows** and **columns**, identified by a
   **primary key** and linked with a **foreign key**.
 - **SQL** is the declarative standard language, in five families:
   **DDL, DML, DQL, TCL, DCL**.
 - A query is **parsed → optimised → planned → executed**, and it runs
   **`FROM` first, `SELECT` almost last**.
-- **SQL is the language; SQLite is one engine that speaks it.** ~95% of what you
-  learn here works unchanged in MySQL, PostgreSQL and Oracle.
-- **DB Browser for SQLite** needs no server, no login and no port — one file,
-  and all the time goes on SQL.
+- **SQL is the language; MySQL is one engine.** ~90% transfers to PostgreSQL,
+  SQLite and Oracle — see [DIALECTS.md](DIALECTS.md).
+- MySQL is a **server**: many databases inside it, so always `USE` one.
 
 ---
 
@@ -425,11 +443,12 @@ in an `INTEGER` column. Other databases refuse. Do not rely on it.
 3. What is the difference between a primary key and a unique key?
 4. Which family does each belong to — `CREATE`, `INSERT`, `SELECT`, `ROLLBACK`?
 5. Why can a `SELECT` alias not be used inside `WHERE`? (Think about run order.)
-6. In one sentence each: what is SQL, and what is SQLite?
-7. Name two things this syllabus covers that SQLite does **not** support.
-8. Install DB Browser and create `training.db`.
-9. Create a `courses` table with `course_id`, `course_name` and `duration`.
-10. Insert three courses, then select only those longer than 30 days.
-11. Write a query listing students with marks between 40 and 90, best first.
-12. Break something on purpose: insert a student with a duplicate `id` and read
-    the error message carefully.
+6. In one sentence each: what is SQL, and what is MySQL?
+7. Name two differences between MySQL and SQLite.
+8. Why does `SELECT 'a' || 'b';` return `0` in MySQL?
+9. Install MySQL and connect with Workbench.
+10. Create a database `training` and select it.
+11. Create a `courses` table with `course_id`, `course_name` and `duration`.
+12. Insert three courses, then select those longer than 30 days.
+13. Run `DESCRIBE courses;` and explain each column of the output.
+14. Insert a student with a duplicate `id` and read the error carefully.
