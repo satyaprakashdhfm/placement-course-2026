@@ -114,6 +114,30 @@ Vikram Rao  | Hyderabad
 Divya Menon | Kochi
 ```
 
+The list does not have to be typed out — it can come from a query, and that is
+where `IN` earns its keep:
+
+```sql
+SELECT name, city, marks
+FROM students
+WHERE city IN (SELECT city FROM students WHERE marks > 90);
+```
+
+```text
++--------------+---------+-------+
+| name         | city    | marks |
++--------------+---------+-------+
+| Anita Sharma | Chennai |    95 |
+| Sneha Iyer   | Chennai |    54 |
+| Meera Nair   | Chennai |  NULL |
++--------------+---------+-------+
+```
+
+*"Everyone from a city that produced a 90+ student."* The inner query finds
+`Chennai`; the outer returns all three of its students, including the one with
+no marks. Note the answer includes students who scored badly — the condition is
+about the **city**, not the student. Students misread this constantly.
+
 > ⚠️ **`NOT IN` with a NULL in the list returns nothing at all.**
 > `WHERE course_id NOT IN (1, 2, NULL)` gives zero rows, because SQL cannot
 > prove `course_id` differs from an unknown value. Use `NOT EXISTS` instead.
@@ -137,6 +161,29 @@ Meera Nair   | 21
 ```
 
 `BETWEEN` is **inclusive** on both ends — the same as `age >= 21 AND age <= 22`.
+
+It works on dates in exactly the same way, which is its most common use:
+
+```sql
+SELECT name, joined_on
+FROM students
+WHERE joined_on BETWEEN '2025-01-01' AND '2025-02-28'
+ORDER BY joined_on;
+```
+
+```text
++--------------+------------+
+| name         | joined_on  |
++--------------+------------+
+| Rahul Verma  | 2025-01-15 |
+| Anita Sharma | 2025-01-20 |
+| Karan Patel  | 2025-02-01 |
+| Priya Nair   | 2025-02-10 |
++--------------+------------+
+```
+
+This is safe because `joined_on` is a `DATE`. On a `DATETIME` column it would
+quietly miss everything later on 28 February — see §12.4.
 
 **Key Notes:**
 - The small value comes **first**. `BETWEEN 22 AND 21` returns nothing.
@@ -181,6 +228,45 @@ Rahul Verma
 Rohit Sinha
 ```
 
+`_` matches exactly one character, so `'_a%'` means *second letter is `a`*:
+
+```sql
+SELECT name FROM students WHERE name LIKE '_a%' ORDER BY name;
+```
+
+```text
++-------------+
+| name        |
++-------------+
+| Karan Patel |
+| Rahul Verma |
++-------------+
+```
+
+Patterns combine with other conditions like anything else:
+
+```sql
+SELECT name, city
+FROM students
+WHERE city LIKE '%a%' AND name NOT LIKE 'A%'
+ORDER BY city, name;
+```
+
+```text
++-------------+-----------+
+| name        | city      |
++-------------+-----------+
+| Meera Nair  | Chennai   |
+| Sneha Iyer  | Chennai   |
+| Karan Patel | Hyderabad |
+| Rahul Verma | Hyderabad |
+| Vikram Rao  | Hyderabad |
++-------------+-----------+
+```
+
+*Cities containing an `a`, excluding names starting with `A`.* Anita Sharma is
+removed by the `NOT LIKE`; Kochi and Pune contain no `a`.
+
 📌 **Dialect corner.** In MySQL, `LIKE` is **case-insensitive** — `'r%'` finds
 Rahul too. SQLite is also insensitive for `LIKE`. PostgreSQL is case-**sensitive**
 (`ILIKE` is its insensitive version). Use `LOWER()` when it must be portable.
@@ -219,6 +305,31 @@ course_name
 -----------
 Cloud
 ```
+
+The subquery can carry its own conditions, which is what makes `EXISTS`
+expressive — *"courses that have at least one strong student"*:
+
+```sql
+SELECT c.course_name, c.duration
+FROM courses c
+WHERE EXISTS (
+    SELECT 1 FROM students s
+    WHERE s.course_id = c.course_id AND s.marks >= 80
+);
+```
+
+```text
++-------------+----------+
+| course_name | duration |
++-------------+----------+
+| SQL         |       30 |
+| DSA         |       90 |
++-------------+----------+
+```
+
+Only SQL (Vikram, 81) and DSA (Arjun, 90) qualify. Adding `AND s.marks >= 80`
+to the inner query changed the question entirely, without touching the outer
+one — the same lever as the subquery threshold on Day 15.
 
 **Key Notes:**
 - `SELECT 1` is a convention — `EXISTS` only cares *whether* rows come back,
@@ -269,6 +380,25 @@ WHERE marks > ANY (SELECT marks FROM students WHERE city = 'Kochi');
 | Rohit Sinha  |    78 |
 +--------------+-------+
 ```
+
+`>= ALL` is how you say "nobody beat them" — a one-line top-scorer query:
+
+```sql
+SELECT name, marks FROM students
+WHERE marks >= ALL (SELECT marks FROM students WHERE marks IS NOT NULL);
+```
+
+```text
++--------------+-------+
+| name         | marks |
++--------------+-------+
+| Anita Sharma |    95 |
++--------------+-------+
+```
+
+⚠️ Note the inner `WHERE marks IS NOT NULL`. Without it the subquery returns a
+`NULL`, every comparison becomes UNKNOWN, and the query returns **nothing at
+all** — the same NULL trap as `NOT IN`, wearing a different hat.
 
 📌 **Dialect corner.** PostgreSQL supports `ANY`/`ALL` too, but **SQLite does
 not** — there you must rewrite them. The rewrites are worth knowing anyway,

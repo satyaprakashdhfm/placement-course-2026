@@ -167,6 +167,54 @@ Rahul Verma  | 78
 | `ORDER BY city, marks DESC` | by city, then by marks inside each city |
 | `ORDER BY 2` | by the **2nd** column in the SELECT list |
 
+**Sorting by two columns** — the second only breaks ties inside the first:
+
+```sql
+SELECT name, city, marks FROM students ORDER BY city, marks DESC;
+```
+
+```text
++--------------+-----------+-------+
+| name         | city      | marks |
++--------------+-----------+-------+
+| Anita Sharma | Chennai   |    95 |
+| Sneha Iyer   | Chennai   |    54 |
+| Meera Nair   | Chennai   |  NULL |
+| Vikram Rao   | Hyderabad |    81 |
+| Rahul Verma  | Hyderabad |    78 |
+| Karan Patel  | Hyderabad |    38 |
+| Priya Nair   | Kochi     |    66 |
+| Divya Menon  | Kochi     |    45 |
+| Arjun Mehta  | Pune      |    90 |
+| Rohit Sinha  | Pune      |    78 |
++--------------+-----------+-------+
+```
+
+Cities ascending, and **within each city** marks descending. Each city's list
+restarts — that is what a second sort key does.
+
+Notice **Meera Nair with `NULL` marks sorts last within Chennai**, because
+`DESC` puts NULLs at the end (MySQL treats NULL as smallest).
+
+**Sorting by position** — `ORDER BY 2` means the second selected column:
+
+```sql
+SELECT name, marks FROM students ORDER BY 2 DESC LIMIT 3;
+```
+
+```text
++--------------+-------+
+| name         | marks |
++--------------+-------+
+| Anita Sharma |    95 |
+| Arjun Mehta  |    90 |
+| Vikram Rao   |    81 |
++--------------+-------+
+```
+
+⚠️ Convenient when experimenting, **bad in real code** — add a column to the
+`SELECT` and the sort silently changes. Name the column.
+
 **Key Note:** without `ORDER BY`, the order of rows is **not guaranteed**. It may
 look sorted today and change tomorrow. If order matters, say so.
 
@@ -191,10 +239,46 @@ Ten students, four cities. `DISTINCT` applies to **all** the selected columns
 together, not just the first:
 
 ```sql
-SELECT DISTINCT city, age FROM students;
+SELECT DISTINCT city, age FROM students ORDER BY city, age;
 ```
 
-gives every unique *pair* of city and age.
+```text
++-----------+------+
+| city      | age  |
++-----------+------+
+| Chennai   |   21 |
+| Chennai   |   22 |
+| Hyderabad |   20 |
+| Hyderabad |   21 |
+| Kochi     |   20 |
+| Kochi     |   23 |
+| Pune      |   23 |
+| Pune      |   24 |
++-----------+------+
+```
+
+Chennai appears **twice** — `DISTINCT` removes duplicate *rows*, not duplicate
+values in the first column. Eight unique pairs from ten students.
+
+`COUNT(DISTINCT ...)` counts the same way:
+
+```sql
+SELECT COUNT(DISTINCT city)      AS cities,
+       COUNT(DISTINCT age)       AS ages,
+       COUNT(DISTINCT city, age) AS pairs
+FROM students;
+```
+
+```text
++--------+------+-------+
+| cities | ages | pairs |
++--------+------+-------+
+|      4 |    5 |     8 |
++--------+------+-------+
+```
+
+4 cities and 5 ages, but only 8 combinations rather than 20 — the useful lesson
+is that **counting a combination is not multiplying the counts**.
 
 ---
 
@@ -248,6 +332,33 @@ Anita Sharma | 95
 Karan Patel  | 38
 ```
 
+Aliases matter most once expressions and joins get involved, because the raw
+column name would be unreadable:
+
+```sql
+SELECT s.name AS student, c.course_name AS course,
+       CONCAT('Rs ', FORMAT(c.fee, 0)) AS fee
+FROM students s
+JOIN courses c ON s.course_id = c.course_id
+ORDER BY c.fee DESC
+LIMIT 4;
+```
+
+```text
++-------------+--------+-----------+
+| student     | course | fee       |
++-------------+--------+-----------+
+| Arjun Mehta | DSA    | Rs 25,000 |
+| Meera Nair  | DSA    | Rs 25,000 |
+| Priya Nair  | Java   | Rs 20,000 |
+| Sneha Iyer  | Java   | Rs 20,000 |
++-------------+--------+-----------+
+```
+
+Without the aliases the third heading would read
+`CONCAT('Rs ', FORMAT(c.fee, 0))`. `FORMAT(n, 0)` adds thousands separators —
+handy for reports, but it returns **text**, so never sort or compare on it.
+
 - `AS` is optional (`name student_name` works) but keep it — it reads better.
 - Use double quotes for an alias with spaces: `AS "Student Name"`.
 - Table aliases save typing, and are essential in joins (Day 13):
@@ -299,6 +410,34 @@ LIMIT 3;
 > but in MySQL it means **OR** — `SELECT 'a' || 'b';` returns `0`, with no
 > error. This is the single most common mistake when moving between them.
 
+Expressions get more useful when they compare a row to something:
+
+```sql
+SELECT name, marks,
+       ROUND(marks / 95 * 100, 1) AS pct_of_topper,
+       marks - 69.44              AS vs_average
+FROM students
+WHERE marks IS NOT NULL
+ORDER BY marks DESC
+LIMIT 4;
+```
+
+```text
++--------------+-------+---------------+------------+
+| name         | marks | pct_of_topper | vs_average |
++--------------+-------+---------------+------------+
+| Anita Sharma |    95 |         100.0 |      25.56 |
+| Arjun Mehta  |    90 |          94.7 |      20.56 |
+| Vikram Rao   |    81 |          85.3 |      11.56 |
+| Rahul Verma  |    78 |          82.1 |       8.56 |
++--------------+-------+---------------+------------+
+```
+
+Both numbers here are **hard-coded** (95 and 69.44), which is exactly the
+weakness a subquery fixes on Day 15 — `marks - (SELECT AVG(marks) FROM students)`
+stays correct when the data changes. Worth flagging now so the subquery lesson
+lands later.
+
 **Key Note:** the table is **not** changed. `marks + 5` only affects what is
 displayed. To change stored data you need `UPDATE`.
 
@@ -338,6 +477,27 @@ all_rows | rows_with_marks
 
 `COUNT(*)` counts rows; `COUNT(column)` **skips NULLs**. Remember this for Day 11.
 
+`COUNT` on different columns is the quickest way to audit missing data:
+
+```sql
+SELECT COUNT(*)                AS total,
+       COUNT(marks)            AS graded,
+       COUNT(*) - COUNT(marks) AS ungraded,
+       COUNT(course_id)        AS enrolled
+FROM students;
+```
+
+```text
++-------+--------+----------+----------+
+| total | graded | ungraded | enrolled |
++-------+--------+----------+----------+
+|    10 |      9 |        1 |        9 |
++-------+--------+----------+----------+
+```
+
+One query, a complete picture of what is missing where. `COUNT(*) - COUNT(col)`
+is the standard "how many NULLs" idiom.
+
 To substitute a value, use `IFNULL` (MySQL) / `COALESCE` (everywhere):
 
 ```sql
@@ -345,10 +505,36 @@ SELECT name, IFNULL(marks, 0) AS marks FROM students WHERE id = 110;
 ```
 
 ```text
-name       | marks
------------+------
-Meera Nair | 0
++------------+-------+
+| name       | marks |
++------------+-------+
+| Meera Nair |     0 |
++------------+-------+
 ```
+
+Different columns can take different replacements in the same query:
+
+```sql
+SELECT name,
+       COALESCE(CAST(marks AS CHAR), 'pending') AS marks,
+       COALESCE(course_id, 0)                   AS course
+FROM students
+WHERE marks IS NULL OR course_id IS NULL;
+```
+
+```text
++-------------+---------+--------+
+| name        | marks   | course |
++-------------+---------+--------+
+| Rohit Sinha | 78      |      0 |
+| Meera Nair  | pending |      4 |
++-------------+---------+--------+
+```
+
+⚠️ Note the `CAST(marks AS CHAR)`. Replacing a number with the **text**
+`'pending'` forces the whole column to text — without the cast MySQL has to
+guess a common type. Make the conversion explicit, and remember the column is
+now text, so it will sort alphabetically.
 
 ---
 

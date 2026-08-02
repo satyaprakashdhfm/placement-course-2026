@@ -177,6 +177,57 @@ CALL city_report('Hyderabad');
 +-------------+-------+
 ```
 
+A procedure that does real work — join, aggregate into variables, then decide:
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE course_report(IN p_course VARCHAR(50))
+BEGIN
+    DECLARE v_n   INT;
+    DECLARE v_avg DECIMAL(6,2);
+
+    SELECT COUNT(*), AVG(s.marks) INTO v_n, v_avg
+    FROM students s
+    JOIN courses c ON s.course_id = c.course_id
+    WHERE c.course_name = p_course;
+
+    SELECT p_course AS course, v_n AS students, ROUND(v_avg,1) AS avg_marks,
+           CASE WHEN v_avg >= 75 THEN 'Excellent'
+                WHEN v_avg >= 50 THEN 'Fine'
+                ELSE 'Needs help' END AS verdict;
+END$$
+DELIMITER ;
+
+CALL course_report('Python');
+```
+
+```text
++--------+----------+-----------+---------+
+| course | students | avg_marks | verdict |
++--------+----------+-----------+---------+
+| Python |        3 |      53.7 | Fine    |
++--------+----------+-----------+---------+
+```
+
+```sql
+CALL course_report('DSA');
+```
+
+```text
++--------+----------+-----------+-----------+
+| course | students | avg_marks | verdict   |
++--------+----------+-----------+-----------+
+| DSA    |        2 |      90.0 | Excellent |
++--------+----------+-----------+-----------+
+```
+
+**One definition, different answers per argument.** That is the whole value
+proposition of a procedure — the logic for "what counts as Excellent" now lives
+in one place instead of in every report that asks the question.
+
+Note `SELECT COUNT(*), AVG(s.marks) INTO v_n, v_avg` — one query filling **two**
+variables at once.
+
 ### Parameter modes
 
 | Mode | Meaning |
@@ -245,6 +296,45 @@ SELECT name, marks, get_grade(marks) AS grade FROM students LIMIT 4;
 **Key Note:** `DETERMINISTIC` promises the same input always gives the same
 output. Without it (or `READS SQL DATA`) MySQL may refuse to create the function
 when binary logging is on.
+
+A function that runs its own query is where they become genuinely useful:
+
+```sql
+DELIMITER $$
+CREATE FUNCTION pass_rate(p_city VARCHAR(50))
+RETURNS DECIMAL(5,1)
+READS SQL DATA
+BEGIN
+    DECLARE v DECIMAL(5,1);
+    SELECT ROUND(100 * SUM(marks >= 50) / COUNT(*), 1) INTO v
+    FROM students WHERE city = p_city AND marks IS NOT NULL;
+    RETURN v;
+END$$
+DELIMITER ;
+
+SELECT DISTINCT city, pass_rate(city) AS pass_pct FROM students ORDER BY pass_pct DESC;
+```
+
+```text
++-----------+----------+
+| city      | pass_pct |
++-----------+----------+
+| Chennai   |    100.0 |
+| Pune      |    100.0 |
+| Hyderabad |     66.7 |
+| Kochi     |     50.0 |
++-----------+----------+
+```
+
+The function is called **once per row** and used like any built-in. Two details
+worth pointing out:
+
+- **`READS SQL DATA`** instead of `DETERMINISTIC` — the result depends on table
+  contents, so it is not deterministic. Declaring it honestly is required when
+  binary logging is on.
+- ⚠️ **A function that queries a table runs that query for every row.** Lovely
+  to read, potentially disastrous on a million rows — the same trap as a
+  correlated subquery. For bulk work, use a join.
 
 ### Procedure vs Function — a guaranteed interview question
 
@@ -361,6 +451,32 @@ BEGIN
 END$$
 DELIMITER ;
 ```
+
+A `BEFORE` trigger can also **reject** a change by raising an error:
+
+```sql
+DELIMITER $$
+CREATE TRIGGER guard_marks
+BEFORE UPDATE ON students
+FOR EACH ROW
+BEGIN
+    IF NEW.marks < 0 OR NEW.marks > 100 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'marks must be between 0 and 100';
+    END IF;
+END$$
+DELIMITER ;
+
+UPDATE students SET marks = 500 WHERE id = 101;
+```
+
+```text
+ERROR 1644 (45000): marks must be between 0 and 100
+```
+
+This is a `CHECK` constraint's job, and a `CHECK` is the better tool here. Use a
+trigger only when the rule needs **other tables** or has to write an audit row —
+something a constraint cannot do.
 
 | Use | Example |
 |---|---|

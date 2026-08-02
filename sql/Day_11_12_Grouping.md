@@ -148,6 +148,47 @@ Hyderabad | 3
 
 Only cities with more than two students survive.
 
+`HAVING` can test several aggregates at once, and can test an aggregate you are
+not even displaying:
+
+```sql
+SELECT city, COUNT(*) AS n, ROUND(AVG(marks),1) AS avg
+FROM students
+WHERE marks IS NOT NULL
+GROUP BY city
+HAVING AVG(marks) > 70 AND COUNT(*) >= 2
+ORDER BY avg DESC;
+```
+
+```text
++---------+---+------+
+| city    | n | avg  |
++---------+---+------+
+| Pune    | 2 | 84.0 |
+| Chennai | 2 | 74.5 |
++---------+---+------+
+```
+
+*Cities averaging above 70 that have at least two graded students* — one
+condition on the average, one on the count.
+
+It works just as well on a joined, grouped result:
+
+```sql
+SELECT c.course_name, COUNT(*) AS n
+FROM students s JOIN courses c ON s.course_id = c.course_id
+GROUP BY c.course_name
+HAVING COUNT(*) > 2;
+```
+
+```text
++-------------+---+
+| course_name | n |
++-------------+---+
+| Python      | 3 |
++-------------+---+
+```
+
 ### WHERE vs HAVING
 
 | | `WHERE` | `HAVING` |

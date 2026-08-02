@@ -72,6 +72,93 @@ SELECT * FROM student_courses WHERE fee > 15000;
 +-------------+---------+-------------+-------+
 ```
 
+### A view that hides real work
+
+The point of a view is that the complexity is written **once**:
+
+```sql
+CREATE OR REPLACE VIEW course_summary AS
+SELECT c.course_id, c.course_name, c.fee,
+       COUNT(s.id)           AS enrolled,
+       ROUND(AVG(s.marks),1) AS avg_marks
+FROM courses c
+LEFT JOIN students s ON s.course_id = c.course_id
+GROUP BY c.course_id, c.course_name, c.fee;
+
+SELECT * FROM course_summary WHERE enrolled > 0 ORDER BY avg_marks DESC;
+```
+
+```text
++-----------+-------------+-------+----------+-----------+
+| course_id | course_name | fee   | enrolled | avg_marks |
++-----------+-------------+-------+----------+-----------+
+|         4 | DSA         | 25000 |        2 |      90.0 |
+|         2 | SQL         | 10000 |        2 |      88.0 |
+|         3 | Java        | 20000 |        2 |      60.0 |
+|         1 | Python      | 15000 |        3 |      53.7 |
++-----------+-------------+-------+----------+-----------+
+```
+
+Note `WHERE enrolled > 0` — you are filtering on a **column the view computed**,
+which you could not do in the original query without `HAVING` or a subquery.
+That is a real reason to build one.
+
+`CREATE OR REPLACE VIEW` re-defines it in place; unlike tables, views do support
+that.
+
+### Joining to a view
+
+A view behaves like a table, so it can be joined — here to find students beating
+their own course average:
+
+```sql
+SELECT s.name, cs.course_name, cs.avg_marks
+FROM students s
+JOIN course_summary cs ON s.course_id = cs.course_id
+WHERE s.marks > cs.avg_marks
+ORDER BY cs.course_name;
+```
+
+```text
++--------------+-------------+-----------+
+| name         | course_name | avg_marks |
++--------------+-------------+-----------+
+| Priya Nair   | Java        |      60.0 |
+| Rahul Verma  | Python      |      53.7 |
+| Anita Sharma | SQL         |      88.0 |
++--------------+-------------+-----------+
+```
+
+Comparing a row against its own group's aggregate normally needs a correlated
+subquery or a window function. The view makes it a plain join.
+
+### WITH CHECK OPTION
+
+If a view is updatable, this stops someone inserting a row that the view could
+not then see:
+
+```sql
+CREATE OR REPLACE VIEW active_students AS
+SELECT id, name, city, marks FROM students
+WHERE marks IS NOT NULL
+WITH CHECK OPTION;
+```
+
+```sql
+SELECT COUNT(*) AS n FROM active_students;
+```
+```text
++---+
+| n |
++---+
+| 9 |
++---+
+```
+
+Without `WITH CHECK OPTION` you could `INSERT` a row with `marks = NULL` through
+this view, and it would vanish from it immediately. With it, MySQL rejects the
+insert.
+
 **Key Notes:**
 - The view is **always current** — change the table and the view reflects it.
 - Remove one with `DROP VIEW toppers;`
