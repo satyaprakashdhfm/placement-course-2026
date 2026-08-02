@@ -436,6 +436,95 @@ right habit.)
 
 ---
 
+## 15. 🔺 ADVANCED — Teacher Reference
+
+### 15.1 Normalisation, with the failure each form prevents
+
+Students memorise the definitions and cannot apply them. Teach the **problem**
+each form removes.
+
+Start with one badly-designed table:
+
+```text
+student_id | name  | courses          | dept      | dept_head
+101        | Rahul | Python, SQL      | CS        | Dr Rao
+102        | Anita | SQL              | CS        | Dr Rao
+```
+
+| Form | Rule | What it fixes here |
+|---|---|---|
+| **1NF** | atomic values, no repeating groups | `courses` holds *two* values — cannot search or count them |
+| **2NF** | 1NF + no partial dependency on part of a composite key | if the key were (student_id, course), `name` depends on only half of it |
+| **3NF** | 2NF + no non-key column depending on another non-key column | `dept_head` depends on `dept`, not on the student — change the head and you must update every student row |
+| **BCNF** | stricter 3NF for overlapping candidate keys | rare; mention only |
+
+The three anomalies to name out loud:
+
+| Anomaly | Example |
+|---|---|
+| **Update** | new dept head → must edit many rows, miss one and the data contradicts itself |
+| **Insert** | cannot record a new department until a student joins it |
+| **Delete** | last student leaves → the department disappears |
+
+**Denormalisation** is the deliberate reverse, for read speed. It is a
+trade-off, not a mistake — say so, or students think normalisation is always
+right.
+
+### 15.2 What the server actually does with a connection
+
+```text
+   Client (Workbench / app)
+        │  TCP 3306
+        ▼
+   Connection thread   ── one per connection, from a thread pool
+        │
+   Parser  →  Optimiser  →  Executor
+                                │
+                         Storage engine (InnoDB)
+                                │
+                    Buffer pool (RAM)  ←→  Disk
+```
+
+Points worth making:
+
+- **`max_connections`** (default 151) is a real production limit; apps use
+  connection **pools** rather than connecting per request.
+- The **InnoDB buffer pool** caches data and indexes in RAM. On a real server it
+  is set to ~70% of memory, and it is why the second run of a query is faster.
+- A query you run twice may be much quicker the second time — warn students so
+  they do not "benchmark" by running something twice.
+
+### 15.3 Storage engines
+
+| Engine | Transactions | Locking | Use |
+|---|---|---|---|
+| **InnoDB** (default) | ✅ ACID | row-level | everything |
+| MyISAM | ❌ | table-level | legacy only |
+| MEMORY | ❌ | table-level | temporary scratch |
+
+If anyone meets MyISAM in the wild: no transactions, no foreign keys, table
+locks. The answer is almost always "convert it to InnoDB".
+
+### 15.4 The catalogue — `information_schema`
+
+Every `SHOW` command is really a query against this database, and you can query
+it yourself:
+
+```sql
+SELECT table_name, table_rows
+FROM information_schema.tables
+WHERE table_schema = 'training';
+
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema='training' AND table_name='students';
+```
+
+Useful when you need to generate SQL, audit a schema, or find every table
+missing a primary key.
+
+---
+
 ## 15. Practice Questions
 
 1. Give three problems with storing 50,000 records in Excel that a database solves.

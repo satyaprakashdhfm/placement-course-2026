@@ -303,6 +303,127 @@ them.
 
 ---
 
+## 10. 🔺 ADVANCED — Teacher Reference
+
+### 10.1 `WITH ROLLUP` — subtotals and a grand total for free
+
+```sql
+SELECT city, COUNT(*) AS n, ROUND(AVG(marks),2) AS avg_marks
+FROM students WHERE marks IS NOT NULL
+GROUP BY city WITH ROLLUP;
+```
+
+```text
++-----------+---+-----------+
+| city      | n | avg_marks |
++-----------+---+-----------+
+| Chennai   | 2 |     74.50 |
+| Hyderabad | 3 |     65.67 |
+| Kochi     | 2 |     55.50 |
+| Pune      | 2 |     84.00 |
+| NULL      | 9 |     69.44 |
++-----------+---+-----------+
+```
+
+The final `NULL` row is the **grand total**. With two grouping columns you get a
+subtotal per first column as well — this is how reporting tools build totals
+rows without a second query.
+
+⚠️ The total row is marked by `NULL` in the grouped column, which is ambiguous
+if the column itself has NULLs. Distinguish them with `GROUPING()`:
+`SELECT IF(GROUPING(city), 'ALL CITIES', city) AS city ...`
+
+📌 PostgreSQL and Oracle write it as `GROUP BY ROLLUP(city)`. SQLite has neither.
+
+### 10.2 `GROUP_CONCAT` — flatten a group into one string
+
+```sql
+SELECT city, GROUP_CONCAT(name ORDER BY marks DESC SEPARATOR ', ') AS students_by_rank
+FROM students WHERE marks IS NOT NULL GROUP BY city;
+```
+
+```text
++-----------+--------------------------------------+
+| city      | students_by_rank                     |
++-----------+--------------------------------------+
+| Chennai   | Anita Sharma, Sneha Iyer             |
+| Hyderabad | Vikram Rao, Rahul Verma, Karan Patel |
+| Kochi     | Priya Nair, Divya Menon              |
+| Pune      | Arjun Mehta, Rohit Sinha             |
++-----------+--------------------------------------+
+```
+
+Enormously useful for reports and for debugging "which rows are in this group?".
+
+⚠️ **Silently truncates at `group_concat_max_len` (default 1024 bytes).** No
+error, just a short string. Raise it with `SET SESSION group_concat_max_len = 100000;`
+
+📌 PostgreSQL calls this `STRING_AGG(name, ', ')`; Oracle `LISTAGG`;
+SQLite `GROUP_CONCAT` but **without** `ORDER BY` support.
+
+### 10.3 Conditional aggregation — the pivot pattern
+
+`SUM()` over a boolean is the cleanest way to count subsets in one pass:
+
+```sql
+SELECT
+  COUNT(*)                                        AS total,
+  SUM(marks >= 75)                                AS distinctions,
+  SUM(marks <  40)                                AS fails,
+  ROUND(100.0 * SUM(marks >= 75)/COUNT(*),1)      AS pct_distinction
+FROM students WHERE marks IS NOT NULL;
+```
+
+```text
++-------+--------------+-------+-----------------+
+| total | distinctions | fails | pct_distinction |
++-------+--------------+-------+-----------------+
+|     9 |            5 |     1 |            55.6 |
++-------+--------------+-------+-----------------+
+```
+
+In MySQL a boolean **is** 1 or 0, so `SUM(marks >= 75)` counts the matches.
+`SUM(CASE WHEN ... THEN 1 ELSE 0 END)` is the portable spelling — teach that one
+for interviews, this one for real work.
+
+**One pass, many answers.** Compare with running three separate `COUNT` queries.
+
+### 10.4 `ONLY_FULL_GROUP_BY` and `ANY_VALUE()`
+
+MySQL 5.7+ rejects selecting a column that is neither grouped nor aggregated.
+When you genuinely do not care which value you get, say so explicitly:
+
+```sql
+SELECT city, ANY_VALUE(name) AS a_student, COUNT(*) AS n
+FROM students GROUP BY city ORDER BY city;
+```
+
+```text
++-----------+--------------+---+
+| city      | a_student    | n |
++-----------+--------------+---+
+| Chennai   | Anita Sharma | 3 |
+| Hyderabad | Rahul Verma  | 3 |
+| Kochi     | Priya Nair   | 2 |
+| Pune      | Arjun Mehta  | 2 |
++-----------+--------------+---+
+```
+
+`ANY_VALUE()` documents the intent. Turning the mode off
+(`SET sql_mode=''`) hides real bugs — do not teach that as the fix.
+
+### 10.5 Performance notes worth saying out loud
+
+| Point | Why |
+|---|---|
+| `WHERE` before `HAVING` | filtering rows early means fewer rows to group |
+| An index on the `GROUP BY` column | lets MySQL group by reading in order, avoiding a temp table |
+| `Using temporary; Using filesort` in `EXPLAIN` | the warning sign for grouping |
+| `COUNT(*)` vs `COUNT(1)` | **identical** — the "COUNT(1) is faster" claim is a myth |
+| `COUNT(DISTINCT x)` | far more expensive than `COUNT(x)`; it must deduplicate |
+
+---
+
 ## 10. Practice Questions
 
 1. Count the students in each city.

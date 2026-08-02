@@ -370,6 +370,110 @@ PostgreSQL: `\dt` and `\d students`.
 
 ---
 
+## 12. 🔺 ADVANCED — Teacher Reference
+
+### 12.1 Generated columns — computed and stored by the database
+
+```sql
+CREATE TABLE marks_demo (
+    id       INT PRIMARY KEY,
+    theory   INT,
+    practical INT,
+    total    INT AS (theory + practical) STORED,
+    grade    VARCHAR(2) AS (IF(theory+practical >= 150, 'A', 'B')) VIRTUAL
+);
+```
+
+```sql
+INSERT INTO marks_demo (id, theory, practical) VALUES (1,80,90),(2,50,60);
+SELECT * FROM marks_demo;
+```
+
+```text
++----+--------+-----------+-------+-------+
+| id | theory | practical | total | grade |
++----+--------+-----------+-------+-------+
+|  1 |     80 |        90 |   170 | A     |
+|  2 |     50 |        60 |   110 | B     |
++----+--------+-----------+-------+-------+
+```
+
+You inserted only `theory` and `practical`; `total` and `grade` computed
+themselves.
+
+| Kind | Stored on disk? | Indexable |
+|---|---|---|
+| `VIRTUAL` (default) | no — computed on read | ✅ yes |
+| `STORED` | yes — computed on write | ✅ yes |
+
+The value can never drift out of sync, because the database owns it. **A stored
+generated column can be indexed**, which is the standard workaround for
+"my `WHERE YEAR(joined_on)=2025` cannot use an index": add
+`joined_year INT AS (YEAR(joined_on)) STORED` and index that.
+
+📌 PostgreSQL has `GENERATED ALWAYS AS ... STORED`. SQLite has both kinds too.
+
+### 12.2 ENUM and SET
+
+```sql
+status ENUM('active','paused','left') NOT NULL DEFAULT 'active'
+```
+
+Stored as a small integer, so it is compact and self-documenting.
+
+⚠️ **Costs to state:** adding a value needs an `ALTER TABLE`; the ordering is by
+definition order not alphabetical; and `ENUM` is a MySQL-ism that does not port.
+A small lookup table with a foreign key is more flexible and is what most teams
+end up doing.
+
+### 12.3 Choosing keys — surrogate vs natural
+
+| | Surrogate (`AUTO_INCREMENT` id) | Natural (email, roll no) |
+|---|---|---|
+| Stability | never changes | may change |
+| Size | small | often large |
+| Meaning | none | meaningful |
+
+In **InnoDB the primary key is the clustering key** — rows are physically stored
+in primary-key order, and every secondary index stores the primary key as its
+pointer. Two consequences worth teaching:
+
+1. A **wide** primary key inflates every secondary index.
+2. A **random** primary key (like a UUID) causes page splits and fragmentation
+   on insert. Sequential `AUTO_INCREMENT` ids append cleanly. This is why
+   "just use a UUID primary key" is bad advice in MySQL specifically.
+
+### 12.4 Constraints vs triggers vs application code
+
+| Put the rule in | When |
+|---|---|
+| **Constraint** | always true, simple, per-row → `CHECK`, `UNIQUE`, `FK` |
+| **Trigger** | needs other tables or auditing |
+| **Application** | complex business logic, needs external data |
+
+**The database is the last line of defence.** Application validation can be
+bypassed by a script, a migration or the next application. Rules that must never
+break belong in the schema.
+
+### 12.5 Schema changes on a live table
+
+`ALTER TABLE` on a large table can lock it for a long time. MySQL 8 supports:
+
+```sql
+ALTER TABLE students ADD COLUMN nickname VARCHAR(30), ALGORITHM=INSTANT;
+```
+
+| Algorithm | Effect |
+|---|---|
+| `INSTANT` | metadata only — adding a column at the end is instant |
+| `INPLACE` | rebuilds without copying the whole table; usually allows writes |
+| `COPY` | full copy — **blocks writes**, the one to avoid |
+
+Real teams use `pt-online-schema-change` or `gh-ost` for large tables. Worth a
+mention so students know the problem exists.
+
+---
+
 ## 12. Practice Questions
 
 1. Create a `teachers` table with `teacher_id` auto-incrementing, `name`

@@ -321,6 +321,188 @@ safety net is not there, so open transactions yourself before risky work.
 
 ---
 
+## 8. 🔺 ADVANCED — Teacher Reference
+
+### 8.1 Composite indexes and the leftmost-prefix rule
+
+**The most valuable index concept there is.** An index on `(city, marks)` is
+sorted by city first, then marks — like a phone book by surname, then first name.
+
+```sql
+CREATE INDEX idx_city_marks ON students(city, marks);
+```
+
+| Query | Uses the index? |
+|---|---|
+| `WHERE city = 'Pune'` | ✅ yes |
+| `WHERE city = 'Pune' AND marks > 70` | ✅ **fully** |
+| `WHERE marks > 70` | ⚠️ only as a scan — the leading column is missing |
+| `WHERE marks > 70 AND city = 'Pune'` | ✅ yes — **order in `WHERE` does not matter** |
+
+Proof from `EXPLAIN`:
+
+```sql
+EXPLAIN SELECT id FROM students WHERE city='Pune' AND marks>70;
+```
+```text
+| type  | key            | rows | Extra                    |
+| range | idx_city_marks |    2 | Using where; Using index |
+```
+
+```sql
+EXPLAIN SELECT id FROM students WHERE marks>70;      -- skips the leading column
+```
+```text
+| type  | key            | rows | Extra                    |
+| index | idx_city_marks |   10 | Using where; Using index |
+```
+
+`type: range` reading 2 rows, versus `type: index` scanning all 10. Same index,
+very different work.
+
+**Teaching line:** *you can use a prefix of an index, never a suffix.* You may
+look up "Sharma, Anita" or "Sharma" in a phone book, but not "Anita".
+
+### 8.2 Covering indexes
+
+Notice `Using index` in both plans above — MySQL answered the query **from the
+index alone**, never touching the table. That is a **covering index**, and it is
+the single biggest index win.
+
+```sql
+EXPLAIN SELECT city, marks FROM students WHERE city='Pune';
+```
+```text
+| type | key            | rows | Extra       |
+| ref  | idx_city_marks |    2 | Using index |
+```
+
+Both selected columns live in the index, so no row lookup happens. Adding a
+frequently-selected column to an index purely to make it covering is a standard
+tuning move.
+
+⚠️ `SELECT *` almost never uses a covering index — one more reason to name your
+columns.
+
+### 8.3 Reading EXPLAIN properly
+
+The `type` column, best to worst:
+
+| `type` | Meaning |
+|---|---|
+| `const` / `eq_ref` | one row via a unique key — perfect |
+| `ref` | index lookup, several rows — good |
+| `range` | index range scan — good |
+| `index` | **full index scan** — mediocre |
+| `ALL` | **full table scan** — the warning sign |
+
+And the `Extra` column:
+
+| `Extra` | Means |
+|---|---|
+| `Using index` | ✅ covering index, no table access |
+| `Using where` | rows filtered after reading |
+| `Using temporary` | ⚠️ a temp table was built (often `GROUP BY`) |
+| `Using filesort` | ⚠️ a sort no index could satisfy |
+| `Using join buffer` | ⚠️ joining without an index — add one |
+
+`EXPLAIN ANALYZE` (8.0.18+) actually **runs** the query and prints real timings
+beside the estimates — the fastest way to spot a bad row estimate.
+
+### 8.4 Cardinality — when an index is useless
+
+```sql
+SHOW INDEX FROM students;
+```
+
+The `Cardinality` column is the number of distinct values. An index only helps
+when it is **selective** — roughly, when it narrows the search to under a third
+of the table.
+
+| Column | Cardinality | Worth indexing? |
+|---|---|---|
+| `id` (primary key) | 10 of 10 | ✅ perfect |
+| `city` | 4 of 10 | ✅ reasonable |
+| A yes/no flag | 2 of millions | ❌ a scan is cheaper |
+
+**Other reasons an index is ignored:**
+
+- a function on the column — `WHERE YEAR(joined_on)=2025` cannot use an index on
+  `joined_on`; rewrite as a range `WHERE joined_on >= '2025-01-01' AND ... < '2026-01-01'`
+- a leading wildcard — `LIKE '%nair'` cannot use one, `LIKE 'nair%'` can
+- a type mismatch between the column and the literal
+
+### 8.5 Isolation levels — the "I" in ACID
+
+```sql
+SELECT @@transaction_isolation;
+```
+```text
++-------------------+
+| isolation_level   |
++-------------------+
+| REPEATABLE-READ   |
++-------------------+
+```
+
+| Level | Dirty read | Non-repeatable read | Phantom read |
+|---|---|---|---|
+| `READ UNCOMMITTED` | possible | possible | possible |
+| `READ COMMITTED` | ❌ | possible | possible |
+| **`REPEATABLE READ`** (MySQL default) | ❌ | ❌ | ❌ in InnoDB |
+| `SERIALIZABLE` | ❌ | ❌ | ❌ |
+
+| Anomaly | Meaning |
+|---|---|
+| **Dirty read** | you see another transaction's uncommitted change |
+| **Non-repeatable read** | you read the same row twice and get different values |
+| **Phantom read** | you run the same query twice and get different **rows** |
+
+📌 **MySQL defaults to `REPEATABLE READ`; PostgreSQL and Oracle default to
+`READ COMMITTED`.** That genuinely changes application behaviour, and it is a
+favourite senior-interview question.
+
+InnoDB also prevents phantoms at `REPEATABLE READ` using **gap locks** — stricter
+than the SQL standard requires, and a common source of surprise deadlocks on
+write-heavy tables.
+
+### 8.6 Deadlocks
+
+Two transactions each holding what the other needs. InnoDB detects it, kills the
+cheaper one, and that session sees:
+
+```text
+ERROR 1213 (40001): Deadlock found when trying to get lock; try restarting transaction
+```
+
+```sql
+SHOW ENGINE INNODB STATUS;      -- read the LATEST DETECTED DEADLOCK section
+```
+
+**Avoiding them:** touch rows in a **consistent order** everywhere, keep
+transactions short, and index the columns you filter on — an unindexed `UPDATE`
+locks far more rows than you expect.
+
+**Handling them:** retry the transaction. Deadlocks are normal under load, not a
+bug to be eliminated entirely.
+
+### 8.7 Materialised views — the thing MySQL lacks
+
+A view re-runs its query every time. When that is expensive, other databases
+offer a **materialised view** that stores the result. MySQL has none, so you
+build one by hand:
+
+```sql
+CREATE TABLE mv_city_stats AS
+SELECT city, COUNT(*) AS n, AVG(marks) AS avg_marks
+FROM students GROUP BY city;
+-- refresh on a schedule with an EVENT (Day 17) or from a trigger
+```
+
+📌 PostgreSQL and Oracle have real `CREATE MATERIALIZED VIEW ... REFRESH`.
+
+---
+
 ## 8. Practice Questions
 
 1. Create a view `passed_students` showing everyone with marks of 50 or more.

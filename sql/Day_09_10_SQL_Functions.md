@@ -353,6 +353,148 @@ Read from the **inside out**: take a substring, change its case, then join.
 
 ---
 
+## 11. 🔺 ADVANCED — Teacher Reference
+
+### 11.1 JSON — MySQL as a document store
+
+MySQL 8 has a real `JSON` type with indexing and full query support.
+
+```sql
+CREATE TABLE profiles (
+    id   INT PRIMARY KEY,
+    data JSON
+);
+INSERT INTO profiles VALUES
+ (1, '{"skills":["Python","SQL"],"exp":2,"contact":{"city":"Pune"}}'),
+ (2, '{"skills":["Java"],"exp":5,"contact":{"city":"Kochi"}}');
+
+SELECT id,
+       data->>'$.exp'            AS experience,
+       data->>'$.contact.city'   AS city,
+       JSON_LENGTH(data->'$.skills') AS skill_count
+FROM profiles;
+```
+
+```text
++----+------------+-------+-------------+
+| id | experience | city  | skill_count |
++----+------------+-------+-------------+
+|  1 | 2          | Pune  |           2 |
+|  2 | 5          | Kochi |           1 |
++----+------------+-------+-------------+
+```
+
+| Operator / function | Does |
+|---|---|
+| `->` | extract, **keeps** JSON quotes |
+| `->>` | extract and **unquote** — usually what you want |
+| `JSON_EXTRACT`, `JSON_UNQUOTE` | the long forms of the above |
+| `JSON_CONTAINS`, `JSON_LENGTH`, `JSON_KEYS` | inspect |
+| `JSON_TABLE(...)` | turn a JSON array into **rows** |
+
+**When to use it:** genuinely variable attributes. **When not to:** as an excuse
+to avoid designing a schema. You lose constraints, foreign keys and easy joins.
+
+📌 PostgreSQL's `JSONB` is more mature and indexes better. SQLite has JSON1.
+
+### 11.2 String aggregation and splitting
+
+```sql
+SELECT GROUP_CONCAT(DISTINCT city ORDER BY city SEPARATOR ' | ') AS all_cities
+FROM students;
+```
+
+```text
++---------------------------------------+
+| all_cities                            |
++---------------------------------------+
+| Chennai | Hyderabad | Kochi | Pune    |
++---------------------------------------+
+```
+
+⚠️ Truncates silently at `group_concat_max_len` (default 1024).
+
+MySQL has no `SPLIT` function. `SUBSTRING_INDEX` is the workaround:
+
+```sql
+SELECT SUBSTRING_INDEX('Rahul Verma', ' ', 1)  AS first_name,
+       SUBSTRING_INDEX('Rahul Verma', ' ', -1) AS last_name;
+```
+
+```text
++------------+-----------+
+| first_name | last_name |
++------------+-----------+
+| Rahul      | Verma     |
++------------+-----------+
+```
+
+Positive n takes from the left, negative from the right. Nesting two of them
+extracts a middle field — the standard MySQL "split a string" idiom.
+
+### 11.3 Date bucketing — the shape of every analytics query
+
+```sql
+SELECT DATE_FORMAT(joined_on, '%Y-%m') AS month,
+       COUNT(*)                        AS joined,
+       ROUND(AVG(marks),2)             AS avg_marks
+FROM students
+GROUP BY month
+ORDER BY month;
+```
+
+```text
++---------+--------+-----------+
+| month   | joined | avg_marks |
++---------+--------+-----------+
+| 2025-01 |      2 |     86.50 |
+| 2025-02 |      2 |     52.00 |
+| 2025-03 |      2 |     67.50 |
+| 2025-04 |      2 |     67.50 |
+| 2025-05 |      2 |     78.00 |
++---------+--------+-----------+
+```
+
+`'%Y-%m'` sorts correctly as text, which is why it beats `MONTH()` for grouping
+across years.
+
+Other buckets: `YEARWEEK(d)`, `QUARTER(d)`,
+`DATE_SUB(d, INTERVAL WEEKDAY(d) DAY)` for week-start.
+
+⚠️ **Grouping by a function on a column cannot use an index.** For big tables,
+store a generated column (Day 2–3 §12.1) and index that.
+
+### 11.4 Numeric precision traps
+
+| Trap | Detail |
+|---|---|
+| `FLOAT` comparison | `0.1+0.2 <> 0.3`. Use `DECIMAL` for money |
+| `ROUND` on `.5` | MySQL rounds half **away from zero** for exact types |
+| Integer division | `7/2` = `3.5000`, `7 DIV 2` = `3` |
+| `NULL` in arithmetic | anything `+ NULL` is `NULL` — wrap with `COALESCE` |
+| `AVG` of integers | returns a decimal, not an integer |
+
+The `NULL` one causes the most silent damage:
+
+```sql
+SELECT marks + 5 FROM students WHERE id = 110;   -- NULL, not 5
+```
+
+### 11.5 A function on a column kills the index — say this every time
+
+```sql
+WHERE YEAR(joined_on) = 2025                                    -- ❌ scans
+WHERE joined_on >= '2025-01-01' AND joined_on < '2026-01-01'    -- ✅ index range
+
+WHERE LOWER(city) = 'pune'      -- ❌ scans (and unnecessary in MySQL — it is
+                                --    already case-insensitive)
+WHERE city = 'pune'             -- ✅
+```
+
+This one rewrite is the most common real-world query fix there is.
+
+---
+
 ## 11. Practice Questions
 
 1. Show every student's name in capitals with its length.

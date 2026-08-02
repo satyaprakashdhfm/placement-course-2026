@@ -25,6 +25,31 @@ noting what changes elsewhere, so the team can move between engines.
 
 ---
 
+## 🔺 Advanced sections — teacher reference
+
+**Every day file ends with a `🔺 ADVANCED — Teacher Reference` section
+before the practice questions.** These are *your* notes, not the student
+handout: deeper mechanics, real-world gotchas, and the follow-up questions a
+sharp student or an interviewer will ask.
+
+| Day | Advanced topics |
+|---|---|
+| 1 | Normalisation by the anomaly each form prevents, connection/buffer-pool architecture, storage engines, `information_schema` |
+| 2–3 | Generated columns, `ENUM`/`SET`, surrogate vs natural keys and InnoDB clustering, online `ALTER` algorithms |
+| 4–6 | `<=>` null-safe equality, custom sort orders and the `FIELD()` trap, `REGEXP`, deep-pagination and keyset paging, collations |
+| 7–8 | Row constructors, *why* `NOT IN` + NULL returns nothing, full precedence table, `BETWEEN` on datetimes, `IN`/`EXISTS`/`JOIN` compared |
+| 9–10 | JSON columns and `->>`, `GROUP_CONCAT`/`SUBSTRING_INDEX`, date bucketing, numeric precision traps, functions that kill indexes |
+| 11–12 | `WITH ROLLUP`, `GROUP_CONCAT`, conditional aggregation (pivot), `ONLY_FULL_GROUP_BY`/`ANY_VALUE`, grouping performance |
+| 13–14 | Semi/anti-join patterns, reading `EXPLAIN FORMAT=TREE`, join algorithms, `ON` vs `WHERE` on outer joins, set operators |
+| 15 | CTEs, **recursive CTEs**, `LAG`/`LEAD`/`NTILE`/`PERCENT_RANK`, frame clauses, running totals, median |
+| 16 | **Leftmost-prefix rule**, covering indexes, reading `EXPLAIN`, cardinality, isolation levels, deadlocks, materialised views |
+| 17 | `SIGNAL`, cursors, dynamic SQL and injection, events/scheduler, transactions in procedures, when *not* to use them |
+| 18 | Hard interview questions with answers, optimisation checklist, anti-patterns, design questions, myths |
+
+Everything in them was executed against MySQL 8.4.11 — the outputs are real.
+
+---
+
 ## Version requirements
 
 | Feature | Needs |

@@ -361,6 +361,160 @@ Write `=`.
 
 ---
 
+## 13. 🔺 ADVANCED — Teacher Reference
+
+### 13.1 The NULL-safe equality operator `<=>`
+
+```sql
+SELECT NULL = NULL AS plain_eq, NULL <=> NULL AS null_safe, 78 <=> 78 AS same;
+```
+
+```text
++----------+-----------+------+
+| plain_eq | null_safe | same |
++----------+-----------+------+
+|     NULL |         1 |    1 |
++----------+-----------+------+
+```
+
+`=` on two NULLs gives **NULL** (unknown). `<=>` treats NULL as a comparable
+value and returns **1**. Invaluable when comparing two nullable columns, or
+when writing a "has this row changed?" check.
+
+📌 A MySQL/SQLite operator. PostgreSQL spells it `IS NOT DISTINCT FROM`.
+
+### 13.2 Custom sort orders with `ORDER BY CASE` and `FIELD`
+
+```sql
+SELECT name, city FROM students
+ORDER BY CASE city WHEN 'Pune' THEN 1 WHEN 'Chennai' THEN 2 ELSE 3 END, name;
+```
+
+MySQL also has a shortcut, `FIELD()` — but it has a trap:
+
+```sql
+SELECT name, city FROM students ORDER BY FIELD(city,'Pune','Chennai'), name LIMIT 5;
+```
+
+```text
++-------------+-----------+
+| name        | city      |
++-------------+-----------+
+| Divya Menon | Kochi     |
+| Karan Patel | Hyderabad |
+| Priya Nair  | Kochi     |
+| Rahul Verma | Hyderabad |
+| Vikram Rao  | Hyderabad |
++-------------+-----------+
+```
+
+⚠️ Pune is **not** first. `FIELD()` returns the 1-based position of a match and
+**`0` for anything not in the list** — so every unlisted city sorts *before*
+your listed ones. Either list every value, or sort the zeroes last:
+
+```sql
+ORDER BY FIELD(city,'Pune','Chennai') = 0, FIELD(city,'Pune','Chennai')
+```
+
+The explicit `CASE` version has no such surprise, which is why it is the safer
+thing to teach.
+
+**Putting NULLs where you want them:**
+
+```sql
+SELECT name, marks FROM students ORDER BY marks IS NULL, marks DESC LIMIT 3;
+```
+
+```text
++--------------+-------+
+| name         | marks |
++--------------+-------+
+| Anita Sharma |    95 |
+| Arjun Mehta  |    90 |
+| Vikram Rao   |    81 |
++--------------+-------+
+```
+
+MySQL sorts NULLs **first** when ascending. `marks IS NULL` yields 0 or 1, so
+sorting on it pushes the NULL rows to the end.
+📌 PostgreSQL has proper `NULLS FIRST` / `NULLS LAST`; MySQL does not.
+
+### 13.3 `REGEXP` — when LIKE is not enough
+
+```sql
+SELECT name FROM students WHERE name REGEXP '^[AR]' ORDER BY name;
+```
+
+```text
++--------------+
+| name         |
++--------------+
+| Anita Sharma |
+| Arjun Mehta  |
+| Rahul Verma  |
+| Rohit Sinha  |
++--------------+
+```
+
+| Pattern | Matches |
+|---|---|
+| `^A` | starts with A |
+| `a$` | ends with a |
+| `^[AR]` | starts with A or R |
+| `[0-9]{3}` | three digits |
+| `(Nair\|Iyer)` | either word |
+
+MySQL 8 adds `REGEXP_REPLACE`, `REGEXP_SUBSTR`, `REGEXP_INSTR`.
+
+⚠️ `REGEXP` can **never** use an index — it scans. Fine for reports, wrong for
+a hot lookup path.
+
+### 13.4 Deep pagination is a performance trap
+
+```sql
+SELECT * FROM students ORDER BY id LIMIT 20 OFFSET 100000;
+```
+
+The database reads **100,020 rows** and throws away 100,000. Page 5000 of a
+listing is why "our app gets slower the further you scroll".
+
+**Keyset pagination** fixes it — remember the last id instead of counting:
+
+```sql
+SELECT * FROM students WHERE id > :last_seen_id ORDER BY id LIMIT 20;
+```
+
+Constant time at any depth. The trade-off is that you cannot jump to an
+arbitrary page number, which is why infinite-scroll UIs use it.
+
+### 13.5 Collations — the real reason for case-insensitivity
+
+MySQL's default collation `utf8mb4_0900_ai_ci` ends in **`_ci`** = case
+**insensitive**, and `ai` = accent insensitive. That is *why* `WHERE
+city='pune'` matches `Pune`.
+
+```sql
+SELECT 'Pune' = 'pune' AS default_ci,
+       'Pune' COLLATE utf8mb4_0900_as_cs = 'pune' AS forced_cs;
+```
+
+```text
++------------+-----------+
+| default_ci | forced_cs |
++------------+-----------+
+|          1 |         0 |
++------------+-----------+
+```
+
+Two practical consequences:
+
+- Comparing columns with **different collations** raises
+  *"Illegal mix of collations"* — a classic error after importing a table.
+- Always use **`utf8mb4`**, never the older `utf8` (which is a 3-byte subset
+  that cannot store emoji or some scripts).
+
+---
+
 ## 13. Practice Questions
 
 1. List every student's name and city.

@@ -248,6 +248,131 @@ Full detail in [DIALECTS.md](DIALECTS.md).
 
 ---
 
+## 6. 🔺 ADVANCED — Teacher Reference
+
+### 6.1 The hard interview questions
+
+**Q. Find the Nth highest salary/mark.**
+
+```sql
+SELECT DISTINCT marks FROM students WHERE marks IS NOT NULL
+ORDER BY marks DESC LIMIT 1 OFFSET 1;          -- N-1 as the offset
+```
+Better, because it handles ties explicitly and states intent:
+```sql
+SELECT marks FROM (
+    SELECT marks, DENSE_RANK() OVER (ORDER BY marks DESC) AS r
+    FROM students WHERE marks IS NOT NULL) t
+WHERE r = 2;
+```
+The follow-up is always *"what if two people tie for first?"* — `DENSE_RANK`
+treats them as one place, `ROW_NUMBER` does not. Say which you mean.
+
+**Q. Delete duplicate rows, keeping one.**
+
+```sql
+DELETE s1 FROM students s1
+JOIN students s2
+  ON s1.name = s2.name AND s1.id > s2.id;       -- keeps the lowest id
+```
+The self-join with `>` is the trick: every duplicate except the smallest matches.
+
+**Q. Gaps and islands — find consecutive runs.**
+
+```sql
+SELECT MIN(id) AS run_start, MAX(id) AS run_end, COUNT(*) AS len
+FROM (SELECT id, id - ROW_NUMBER() OVER (ORDER BY id) AS grp FROM students) t
+GROUP BY grp;
+```
+```text
++-----------+---------+-----+
+| run_start | run_end | len |
++-----------+---------+-----+
+|       101 |     110 |  10 |
++-----------+---------+-----+
+```
+
+One run of 10 — because our ids 101–110 happen to have no gaps. Delete a row and
+re-run it and you get two runs; that is the point of the query.
+
+`id - ROW_NUMBER()` is **constant within a consecutive run** and changes at every
+gap. That one line is the whole technique — used for streaks, attendance runs
+and session detection.
+
+**Q. Running total without window functions (MySQL 5.7).**
+
+```sql
+SET @total := 0;
+SELECT name, marks, (@total := @total + marks) AS running
+FROM students WHERE marks IS NOT NULL ORDER BY joined_on;
+```
+Worth knowing for legacy systems. ⚠️ Deprecated in MySQL 8, and the evaluation
+order is not guaranteed — use window functions where you can.
+
+**Q. Pivot rows into columns.** Conditional aggregation — Day 11–12 §10.3.
+SQL cannot pivot on values unknown at write time; that needs dynamic SQL
+(Day 17 §11.3) or the reporting layer.
+
+### 6.2 Query optimisation checklist
+
+Work down this list, in order:
+
+1. **`EXPLAIN` first.** Never optimise on a guess. Look at `type` and `rows`.
+2. **`type: ALL` on a big table** → the join or filter column needs an index.
+3. **Index every foreign key.** MySQL does not do it for you.
+4. **Un-wrap functions on columns** — `WHERE YEAR(d)=2025` → a date range.
+5. **Composite index order** — equality columns first, then the range column.
+6. **Select fewer columns** — `SELECT *` blocks covering indexes.
+7. **`Using temporary; Using filesort`** → try to make an index satisfy the
+   `GROUP BY`/`ORDER BY`.
+8. **Beware `OR`** across different columns — often two `UNION ALL` branches
+   each using its own index are faster.
+9. **Paginate by keyset**, not `OFFSET` (Day 4–6 §13.4).
+10. **`ANALYZE TABLE`** if the optimiser's row estimates look wrong.
+
+### 6.3 Anti-patterns to name
+
+| Anti-pattern | Why it hurts |
+|---|---|
+| `SELECT *` everywhere | more I/O, breaks covering indexes, breaks silently when columns change |
+| Functions on indexed columns in `WHERE` | forces a full scan |
+| `OFFSET` deep pagination | reads and discards everything before the page |
+| Storing money in `FLOAT` | comparisons fail |
+| Storing dates as text | no validation, no date arithmetic |
+| `NOT IN` with a nullable subquery | silently returns nothing |
+| Indexing every column | writes slow, disk grows, optimiser gets confused |
+| Cursors for set-based work | N round trips instead of one statement |
+| No foreign keys "for performance" | orphan rows, corrupted reports later |
+| `sql_mode = ''` to silence errors | hides real bugs |
+
+### 6.4 Design questions they ask seniors
+
+**"How would you design a schema for X?"** — say this sequence out loud:
+entities → relationships → keys → normalise to 3NF → then denormalise only where
+a measured read problem exists.
+
+**"How do you handle a table that has grown to 500 million rows?"** — index
+review, archiving old data, partitioning by range, read replicas, then sharding.
+In that order — reach for the cheap fix first.
+
+**"Where would you cache?"** — the database buffer pool first (free), then an
+application cache, then Redis. Name the invalidation strategy or the answer is
+incomplete.
+
+### 6.5 Things people get wrong under pressure
+
+| Claim | Truth |
+|---|---|
+| "`COUNT(1)` is faster than `COUNT(*)`" | Identical. Both are optimised the same |
+| "`TRUNCATE` can be rolled back" | Not in MySQL. It can in PostgreSQL |
+| "A view makes queries faster" | No. It re-runs the query |
+| "More indexes are always better" | Every index slows writes |
+| "`DISTINCT` fixes duplicate rows" | It hides a broken join — fix the join |
+| "`NULL` equals `NULL`" | It is UNKNOWN. Use `IS NULL` or `<=>` |
+| "`WHERE` and `HAVING` are interchangeable" | Only when there is no `GROUP BY` |
+
+---
+
 ## 6. Final Checklist
 
 Before an interview, make sure you can do each of these **from memory**:

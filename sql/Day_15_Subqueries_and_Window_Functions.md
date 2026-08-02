@@ -346,6 +346,224 @@ rankings. Without it she would be ranked too.
 
 ---
 
+## 12. 🔺 ADVANCED — Teacher Reference
+
+*Not in the student handout. Use these when the class is ahead, or to answer
+"can SQL do X?" questions.*
+
+### 12.1 CTEs — naming a subquery (`WITH`)
+
+A **Common Table Expression** is a subquery given a name up front. Same result
+as a derived table, far easier to read, and it can be referenced twice.
+
+```sql
+WITH city_stats AS (
+    SELECT city, ROUND(AVG(marks),2) AS avg_marks, COUNT(*) AS n
+    FROM students WHERE marks IS NOT NULL GROUP BY city
+)
+SELECT c.city, c.avg_marks, c.n
+FROM city_stats c
+WHERE c.avg_marks > (SELECT AVG(avg_marks) FROM city_stats)
+ORDER BY c.avg_marks DESC;
+```
+
+```text
++---------+-----------+---+
+| city    | avg_marks | n |
++---------+-----------+---+
+| Pune    |     84.00 | 2 |
+| Chennai |     74.50 | 2 |
++---------+-----------+---+
+```
+
+`city_stats` is used **twice** — once in `FROM`, once inside the `WHERE`. A
+derived table would have to be written out twice.
+
+**Teaching point:** CTE vs derived table vs view — *CTE = named for one query ·
+derived table = anonymous, inline · view = stored permanently.* Needs MySQL 8.0+.
+
+### 12.2 Recursive CTEs — hierarchies of unknown depth
+
+The one thing plain SQL genuinely cannot do without recursion.
+
+```sql
+WITH RECURSIVE org AS (
+    SELECT emp_id, emp_name, manager_id, 1 AS level,
+           CAST(emp_name AS CHAR(200)) AS path
+    FROM employees WHERE manager_id IS NULL            -- anchor: the top
+    UNION ALL
+    SELECT e.emp_id, e.emp_name, e.manager_id, o.level + 1,
+           CONCAT(o.path, ' > ', e.emp_name)
+    FROM employees e JOIN org o ON e.manager_id = o.emp_id   -- recursive part
+)
+SELECT level, emp_name, path FROM org ORDER BY level, emp_name;
+```
+
+```text
++-------+----------+-----------------------+
+| level | emp_name | path                  |
++-------+----------+-----------------------+
+|     1 | Anil     | Anil                  |
+|     2 | Bhavna   | Anil > Bhavna         |
+|     2 | Chetan   | Anil > Chetan         |
+|     3 | Deepa    | Anil > Bhavna > Deepa |
+|     3 | Esha     | Anil > Bhavna > Esha  |
++-------+----------+-----------------------+
+```
+
+**Shape to memorise:** anchor query → `UNION ALL` → recursive query joining back
+to the CTE's own name.
+
+⚠️ The `CAST(... AS CHAR(200))` is **required**. Without it MySQL fixes the
+column width from the anchor row and silently truncates longer paths. Runaway
+recursion stops at `cte_max_recursion_depth` (default 1000).
+
+### 12.3 The rest of the window functions
+
+| Function | Gives |
+|---|---|
+| `LAG(col, n)` | value from **n rows back** |
+| `LEAD(col, n)` | value **n rows ahead** |
+| `FIRST_VALUE` / `LAST_VALUE` | first / last in the window |
+| `NTILE(n)` | split rows into n buckets |
+| `PERCENT_RANK()` | relative standing, 0 to 1 |
+| `CUME_DIST()` | cumulative distribution |
+
+```sql
+SELECT name, marks,
+       LAG(marks)  OVER (ORDER BY marks DESC) AS above,
+       LEAD(marks) OVER (ORDER BY marks DESC) AS below,
+       marks - LEAD(marks) OVER (ORDER BY marks DESC) AS lead_over_next
+FROM students WHERE marks IS NOT NULL ORDER BY marks DESC;
+```
+
+```text
++--------------+-------+-------+-------+----------------+
+| name         | marks | above | below | lead_over_next |
++--------------+-------+-------+-------+----------------+
+| Anita Sharma |    95 |  NULL |    90 |              5 |
+| Arjun Mehta  |    90 |    95 |    81 |              9 |
+| Vikram Rao   |    81 |    90 |    78 |              3 |
+| Rahul Verma  |    78 |    81 |    78 |              0 |
+| Rohit Sinha  |    78 |    78 |    66 |             12 |
+| Priya Nair   |    66 |    78 |    54 |             12 |
+| Sneha Iyer   |    54 |    66 |    45 |              9 |
+| Divya Menon  |    45 |    54 |    38 |              7 |
+| Karan Patel  |    38 |    45 |  NULL |           NULL |
++--------------+-------+-------+-------+----------------+
+```
+
+`LAG`/`LEAD` are how you compare a row to its neighbour — month-on-month growth,
+price changes, time between events — **with no self-join**.
+
+```sql
+SELECT name, marks,
+       NTILE(4) OVER (ORDER BY marks DESC) AS quartile,
+       ROUND(PERCENT_RANK() OVER (ORDER BY marks DESC),3) AS pct_rank
+FROM students WHERE marks IS NOT NULL;
+```
+
+```text
++--------------+-------+----------+----------+
+| name         | marks | quartile | pct_rank |
++--------------+-------+----------+----------+
+| Anita Sharma |    95 |        1 |        0 |
+| Arjun Mehta  |    90 |        1 |    0.125 |
+| Vikram Rao   |    81 |        1 |     0.25 |
+| Rahul Verma  |    78 |        2 |    0.375 |
+| Rohit Sinha  |    78 |        2 |    0.375 |
+| Priya Nair   |    66 |        3 |    0.625 |
+| Sneha Iyer   |    54 |        3 |     0.75 |
+| Divya Menon  |    45 |        4 |    0.875 |
+| Karan Patel  |    38 |        4 |        1 |
++--------------+-------+----------+----------+
+```
+
+`NTILE(4)` is how you say "top quartile"; `PERCENT_RANK` is how you say "top 10%".
+
+### 12.4 Frame clauses — running totals and moving averages
+
+`OVER (...)` can take a **frame**: which rows around the current one to include.
+
+```sql
+SELECT name, joined_on, marks,
+       SUM(marks) OVER (ORDER BY joined_on
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total,
+       ROUND(AVG(marks) OVER (ORDER BY joined_on
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW),2)      AS moving_avg_3
+FROM students WHERE marks IS NOT NULL ORDER BY joined_on;
+```
+
+```text
++--------------+------------+-------+---------------+--------------+
+| name         | joined_on  | marks | running_total | moving_avg_3 |
++--------------+------------+-------+---------------+--------------+
+| Rahul Verma  | 2025-01-15 |    78 |            78 |        78.00 |
+| Anita Sharma | 2025-01-20 |    95 |           173 |        86.50 |
+| Karan Patel  | 2025-02-01 |    38 |           211 |        70.33 |
+| Priya Nair   | 2025-02-10 |    66 |           277 |        66.33 |
+| Vikram Rao   | 2025-03-05 |    81 |           358 |        61.67 |
+| Sneha Iyer   | 2025-03-12 |    54 |           412 |        67.00 |
+| Arjun Mehta  | 2025-04-02 |    90 |           502 |        75.00 |
+| Divya Menon  | 2025-04-18 |    45 |           547 |        63.00 |
+| Rohit Sinha  | 2025-05-01 |    78 |           625 |        71.00 |
++--------------+------------+-------+---------------+--------------+
+```
+
+| Frame | Meaning |
+|---|---|
+| `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` | running total |
+| `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` | 3-row moving average |
+| `ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING` | remaining total |
+| `RANGE BETWEEN ...` | by **value**, not row count — ties share a frame |
+
+⚠️ **The default frame is `RANGE ... CURRENT ROW`**, which lumps tied values
+together. If `SUM(x) OVER (ORDER BY y)` jumps unexpectedly on ties, that is why.
+Write `ROWS` explicitly when you mean row counts.
+
+### 12.5 Median — the "SQL has no MEDIAN" answer
+
+```sql
+SELECT AVG(marks) AS median FROM (
+    SELECT marks,
+           ROW_NUMBER() OVER (ORDER BY marks) AS rn,
+           COUNT(*)     OVER ()               AS total
+    FROM students WHERE marks IS NOT NULL
+) t
+WHERE rn IN (FLOOR((total+1)/2), CEIL((total+1)/2));
+```
+
+```text
++---------+
+| median  |
++---------+
+| 78.0000 |
++---------+
+```
+
+Taking `FLOOR` **and** `CEIL` handles both cases: for an odd count they are the
+same row; for an even count they are the middle two, and `AVG` averages them.
+
+Note `COUNT(*) OVER ()` — an **empty** `OVER ()` means "the whole result set",
+which is how you get a grand total beside every row.
+
+### 12.6 Subquery vs JOIN — what the optimiser actually does
+
+MySQL 8 rewrites most `IN (subquery)` into a **semi-join**, so the old advice
+"always rewrite `IN` as a `JOIN`" is largely obsolete. What still matters:
+
+| Pattern | Watch for |
+|---|---|
+| **Correlated subquery in `SELECT`** | Runs once **per row** — usually replace with `LEFT JOIN` + `GROUP BY` |
+| `NOT IN (subquery)` | Silently returns nothing if the subquery yields `NULL` — use `NOT EXISTS` |
+| Derived table in `FROM` | May be materialised into a temp table; check `EXPLAIN` |
+| `EXISTS` | Short-circuits at the first match — usually the best anti/semi-join |
+
+**Rule of thumb to teach:** *use a join to combine data, a subquery to filter by
+something computed, and `EXISTS` to test existence.*
+
+---
+
 ## 12. Practice Questions
 
 1. Students scoring above the class average.

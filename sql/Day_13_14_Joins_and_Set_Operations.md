@@ -377,6 +377,127 @@ LEFT JOIN students s ON s.course_id = c.course_id AND s.marks > 50
 
 ---
 
+## 11. 🔺 ADVANCED — Teacher Reference
+
+### 11.1 The four job-shaped join patterns
+
+Everything you meet in real work is one of these:
+
+| Pattern | Question it answers | Shape |
+|---|---|---|
+| **Inner join** | "matched pairs" | `A JOIN B ON ...` |
+| **Semi-join** | "A rows that HAVE a B" | `WHERE EXISTS (...)` |
+| **Anti-join** | "A rows with NO B" | `LEFT JOIN ... WHERE B.key IS NULL` |
+| **Outer join** | "everything, matched or not" | `LEFT JOIN` |
+
+The **anti-join** is the one people write badly:
+
+```sql
+SELECT c.course_name FROM courses c
+LEFT JOIN students s ON s.course_id = c.course_id
+WHERE s.id IS NULL;
+```
+
+```text
++-------------+
+| course_name |
++-------------+
+| Cloud       |
++-------------+
+```
+
+⚠️ Test `IS NULL` on a **`NOT NULL`** column of the right table (here `s.id`).
+Testing a nullable column cannot distinguish "no match" from "matched, value
+was NULL".
+
+### 11.2 Reading the join plan
+
+`EXPLAIN FORMAT=TREE` shows how the join actually runs:
+
+```sql
+EXPLAIN FORMAT=TREE
+SELECT s.name, c.course_name FROM students s JOIN courses c ON s.course_id = c.course_id;
+```
+
+```text
+-> Nested loop inner join  (cost=4.25 rows=10)
+    -> Table scan on c  (cost=0.75 rows=5)
+    -> Index lookup on s using course_id (course_id=c.course_id)  (cost=0.54 rows=2)
+```
+
+Read it inside-out: MySQL scans `courses` (the smaller table) and, for each row,
+does an **index lookup** into `students`. That is the good case.
+
+| Join algorithm | When | Sign of trouble |
+|---|---|---|
+| **Nested loop** | driving table small, join column indexed | fine |
+| **Hash join** (8.0.18+) | no usable index on the join column | fine for big batch queries, bad for OLTP |
+| **Block nested loop** | older MySQL, no index | `Using join buffer` — **add an index** |
+
+**The single most valuable optimisation to teach:** *index every foreign key.*
+MySQL indexes primary keys automatically but **not** the columns that point at
+them.
+
+### 11.3 Join order and the driving table
+
+You write `A JOIN B`; the optimiser decides which to read first. It normally
+picks the table it can reduce to fewest rows. You can inspect its choice in
+`EXPLAIN` (top row = driving table) and, rarely, force it:
+
+```sql
+SELECT /*+ JOIN_ORDER(c, s) */ ...      -- MySQL 8 optimizer hint
+SELECT ... FROM a STRAIGHT_JOIN b ...   -- older, forces left-to-right
+```
+
+Only reach for these when `EXPLAIN` proves the optimiser chose badly — usually
+caused by stale statistics, fixed with `ANALYZE TABLE students;`.
+
+### 11.4 `ON` vs `WHERE` on an outer join — the classic bug
+
+```sql
+-- Intent: all courses, with a count of students who scored 50+
+
+-- WRONG: WHERE turns the LEFT JOIN into an INNER JOIN
+FROM courses c LEFT JOIN students s ON s.course_id = c.course_id
+WHERE s.marks >= 50
+
+-- RIGHT: the condition belongs to the join
+FROM courses c LEFT JOIN students s ON s.course_id = c.course_id AND s.marks >= 50
+```
+
+For an **inner** join `ON` and `WHERE` are interchangeable. For an **outer**
+join they are completely different: `ON` decides what counts as a match,
+`WHERE` throws away rows **after** the join — including the `NULL`-filled ones
+you were trying to keep.
+
+### 11.5 Set operators
+
+| Operator | MySQL | Meaning |
+|---|---|---|
+| `UNION` / `UNION ALL` | ✅ | stack rows |
+| `INTERSECT` | ✅ 8.0.31+ | rows in **both** |
+| `EXCEPT` | ✅ 8.0.31+ | rows in the first but not the second |
+
+Before 8.0.31, emulate them:
+
+```sql
+-- INTERSECT
+SELECT city FROM a WHERE city IN (SELECT city FROM b);
+-- EXCEPT
+SELECT city FROM a WHERE city NOT IN (SELECT city FROM b);   -- beware NULLs
+```
+
+📌 SQLite and PostgreSQL have had `INTERSECT`/`EXCEPT` forever. Oracle spells
+`EXCEPT` as **`MINUS`**.
+
+### 11.6 Self-joins beyond one level
+
+A self-join reaches **one** level up. For a whole hierarchy of unknown depth you
+need a **recursive CTE** — see Day 15 §12.2. That distinction is a common
+interview follow-up: *"now show the full chain of command"*.
+
+---
+
 ## 11. Practice Questions
 
 1. List every student with their course name.

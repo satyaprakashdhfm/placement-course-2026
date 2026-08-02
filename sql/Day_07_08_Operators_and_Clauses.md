@@ -391,6 +391,116 @@ Know the `MIN`/`MAX`/`IN` rewrites.
 
 ---
 
+## 12. 🔺 ADVANCED — Teacher Reference
+
+### 12.1 Row constructors — comparing several columns at once
+
+```sql
+SELECT name, city, age FROM students
+WHERE (city, age) IN (('Hyderabad', 21), ('Pune', 24));
+```
+
+```text
++-------------+-----------+------+
+| name        | city      | age  |
++-------------+-----------+------+
+| Rahul Verma | Hyderabad |   21 |
+| Vikram Rao  | Hyderabad |   21 |
+| Arjun Mehta | Pune      |   24 |
++-------------+-----------+------+
+```
+
+Far cleaner than `(city='Hyderabad' AND age=21) OR (city='Pune' AND age=24)`,
+and the standard way to match a composite key against a list.
+
+### 12.2 Why `NOT IN` with NULL returns nothing — the logic
+
+This is the single most misunderstood thing in SQL. Walk through it:
+
+```text
+WHERE course_id NOT IN (1, 2, NULL)
+
+is really    course_id <> 1  AND  course_id <> 2  AND  course_id <> NULL
+                                                       └── always UNKNOWN
+
+TRUE AND TRUE AND UNKNOWN  =  UNKNOWN  ->  row is dropped
+```
+
+Because SQL cannot *prove* the value differs from an unknown, **no row can ever
+satisfy it**. `IN` is unaffected — one TRUE is enough to make the whole `OR`
+true.
+
+**The fix, and the interview answer:**
+
+```sql
+WHERE NOT EXISTS (SELECT 1 FROM ...)     -- NULL-safe
+WHERE course_id NOT IN (SELECT course_id FROM courses WHERE course_id IS NOT NULL)
+```
+
+### 12.3 Full operator precedence
+
+Highest to lowest — the ones that bite are in **bold**:
+
+```text
+    !                      NOT (the ! form)
+    - (unary)  ~
+    ^
+    *  /  DIV  %  MOD
+    +  -
+    <<  >>
+    &
+    |
+    =  <=>  >=  >  <=  <  <>  !=  IS  LIKE  REGEXP  IN
+    BETWEEN  CASE  WHEN  THEN  ELSE
+    NOT
+    AND  &&                       <-- binds tighter
+    XOR
+    OR   ||                       <-- binds looser
+```
+
+Two practical consequences:
+
+1. **`AND` before `OR`** — bracket every mixed condition (§2).
+2. `NOT` binds **looser** than comparison, so `NOT a = b` parses as
+   `NOT (a = b)`, which is usually what you wanted — but do not rely on it.
+
+### 12.4 `BETWEEN` and dates — the classic off-by-one-day bug
+
+```sql
+-- Intent: everything in January
+WHERE joined_on BETWEEN '2025-01-01' AND '2025-01-31'
+```
+
+Fine for a `DATE` column. But if the column is `DATETIME`, `'2025-01-31'` means
+`2025-01-31 00:00:00`, so **everything later on the 31st is silently excluded**.
+
+**Always use a half-open range for date-times:**
+
+```sql
+WHERE joined_on >= '2025-01-01' AND joined_on < '2025-02-01'
+```
+
+This is also **index-friendly**, unlike `WHERE MONTH(joined_on) = 1`, which
+wraps the column in a function and forces a scan.
+
+### 12.5 `IN` vs `EXISTS` vs `JOIN` — what actually differs
+
+In MySQL 8 the optimiser converts `IN (subquery)` to a semi-join, so `IN` and
+`EXISTS` usually produce the **same plan**. What genuinely differs:
+
+| | Duplicates | NULL-safe | Best when |
+|---|---|---|---|
+| `IN` | n/a | ❌ (`NOT IN` breaks) | short literal list |
+| `EXISTS` | n/a | ✅ | correlated check, large subquery |
+| `JOIN` | ⚠️ **can multiply rows** | n/a | you need columns from both tables |
+
+⚠️ The one real trap: a **`JOIN` can duplicate rows** if the right table has
+several matches, whereas `EXISTS` never does. If a join makes your row count
+grow unexpectedly, that is why — and the answer is usually `EXISTS` or
+`DISTINCT`.
+
+---
+
 ## 12. Practice Questions
 
 1. Students who are **not** from Hyderabad.

@@ -430,6 +430,183 @@ portable part of SQL. The concepts move; the code does not.
 
 ---
 
+## 11. 🔺 ADVANCED — Teacher Reference
+
+### 11.1 `SIGNAL` — raising your own errors
+
+Handlers *catch* errors; `SIGNAL` *throws* them. This is how a procedure
+enforces a business rule and makes the caller deal with it.
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE risky(IN p_marks INT)
+BEGIN
+    IF p_marks > 100 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Marks cannot exceed 100';
+    END IF;
+    SELECT CONCAT('accepted ', p_marks) AS result;
+END$$
+DELIMITER ;
+
+CALL risky(50);
+```
+```text
++-------------+
+| result      |
++-------------+
+| accepted 50 |
++-------------+
+```
+
+```sql
+CALL risky(150);
+```
+```text
+ERROR 1644 (45000): Marks cannot exceed 100
+```
+
+`45000` is the SQLSTATE reserved for "unhandled user-defined exception" — use it
+unless you have a reason not to. `RESIGNAL` re-throws inside a handler after
+logging.
+
+### 11.2 Cursors — row-by-row processing
+
+When you truly must walk a result set one row at a time:
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE grade_everyone()
+BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE v_id INT;
+    DECLARE v_marks INT;
+    DECLARE cur CURSOR FOR SELECT id, marks FROM students WHERE marks IS NOT NULL;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN cur;
+    read_loop: LOOP
+        FETCH cur INTO v_id, v_marks;
+        IF done THEN LEAVE read_loop; END IF;
+        -- per-row work here
+    END LOOP;
+    CLOSE cur;
+END$$
+DELIMITER ;
+```
+
+**The shape:** `DECLARE cursor` → `DECLARE CONTINUE HANDLER FOR NOT FOUND` →
+`OPEN` → `LOOP`/`FETCH`/`LEAVE` → `CLOSE`. The handler is what tells you the
+rows ran out; forgetting it gives an infinite loop.
+
+> ⚠️ **Teach cursors, then teach not to use them.** A cursor processes N rows in
+> N round trips; a single `UPDATE ... JOIN` does the same work in one pass,
+> often hundreds of times faster. Cursors are for when each row needs genuinely
+> different, non-set-based work.
+
+### 11.3 Dynamic SQL — `PREPARE` / `EXECUTE`
+
+For when the table or column name is not known until run time.
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE find_by(IN col VARCHAR(20), IN val VARCHAR(50))
+BEGIN
+    SET @s = CONCAT('SELECT name, ', col, ' FROM students WHERE ', col, ' = ? LIMIT 3');
+    PREPARE stmt FROM @s;
+    SET @v = val;
+    EXECUTE stmt USING @v;
+    DEALLOCATE PREPARE stmt;
+END$$
+DELIMITER ;
+
+CALL find_by('city', 'Pune');
+```
+```text
++-------------+------+
+| name        | city |
++-------------+------+
+| Rohit Sinha | Pune |
+| Arjun Mehta | Pune |
++-------------+------+
+```
+
+⚠️ **SQL injection lives here.** The *value* is passed safely with `?` and
+`USING`. The *column name* cannot be — it is concatenated straight into the
+string. Whitelist identifiers against `information_schema.columns`; never accept
+them from a user.
+
+### 11.4 Events — MySQL's built-in scheduler
+
+Cron, inside the database. Ideal for refreshing the hand-rolled materialised
+view from Day 16 §8.7.
+
+```sql
+SET GLOBAL event_scheduler = ON;
+
+CREATE EVENT refresh_city_stats
+ON SCHEDULE EVERY 1 HOUR
+DO
+    REPLACE INTO mv_city_stats
+    SELECT city, COUNT(*), AVG(marks) FROM students GROUP BY city;
+```
+
+```sql
+SHOW EVENTS;
+SHOW VARIABLES LIKE 'event_scheduler';
+```
+
+⚠️ The scheduler is **off by default**, and events do not run on a replica.
+Check `event_scheduler` first when "my event never fired".
+
+### 11.5 Transactions inside stored programs
+
+A procedure can manage its own transaction:
+
+```sql
+DELIMITER $$
+CREATE PROCEDURE transfer(IN p_from INT, IN p_to INT, IN p_amt DECIMAL(10,2))
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+        UPDATE accounts SET balance = balance - p_amt WHERE id = p_from;
+        UPDATE accounts SET balance = balance + p_amt WHERE id = p_to;
+    COMMIT;
+END$$
+DELIMITER ;
+```
+
+**The pattern to memorise:** an `EXIT HANDLER` that does `ROLLBACK` then
+`RESIGNAL` — undo the work, but still tell the caller it failed. Swallowing the
+error is how data silently goes missing.
+
+⚠️ **DDL causes an implicit commit.** A `CREATE TABLE` or `ALTER` inside a
+transaction commits everything before it, so you cannot roll it back. Never mix
+DDL into a transactional procedure.
+
+### 11.6 When *not* to put logic in the database
+
+Say this out loud, because the day is otherwise one-sided:
+
+| Against | Why |
+|---|---|
+| Hard to version-control | procedure bodies live in the DB, not naturally in git |
+| Hard to test | no unit-test framework worth the name |
+| Hard to debug | no breakpoints, no stack traces |
+| **Least portable SQL there is** | rewriting for another engine means rewriting all of it |
+| Scales badly | database CPU is the most expensive CPU you own |
+
+**Modern practice:** keep *data integrity* in the database (constraints, a few
+triggers) and *business logic* in the application. Stored procedures remain
+common in banking, ERP and legacy systems — which is exactly why you must be
+able to read them.
+
+---
+
 ## 11. Practice Questions
 
 1. Why must you change the `DELIMITER`?
