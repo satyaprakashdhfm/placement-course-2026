@@ -81,6 +81,33 @@ Meera Nair
 
 Using `=` here fails, because the inner query returns three course ids.
 
+The inner query can be filtered too, which changes the whole meaning:
+
+```sql
+SELECT name, marks
+FROM students
+WHERE marks > (SELECT AVG(marks) FROM students WHERE city = 'Hyderabad')
+ORDER BY marks DESC;
+```
+
+```text
++--------------+-------+
+| name         | marks |
++--------------+-------+
+| Anita Sharma |    95 |
+| Arjun Mehta  |    90 |
+| Vikram Rao   |    81 |
+| Rahul Verma  |    78 |
+| Rohit Sinha  |    78 |
+| Priya Nair   |    66 |
++--------------+-------+
+```
+
+Six students now, not five — the Hyderabad average (65.67) is lower than the
+overall average (69.44), so the bar dropped. **Same query shape, different
+question.** Point this out: the subquery is the *definition of the threshold*,
+and changing it changes the answer without touching the outer query.
+
 ### Correlated — the inner query depends on the outer
 
 ```sql
@@ -101,6 +128,60 @@ Cloud       | 0
 
 Notice the inner query mentions `c.course_id` — a column from the **outer**
 query. It cannot run on its own; it runs once **per course**.
+
+You can have several, and they can each answer a different question:
+
+```sql
+SELECT c.course_name, c.fee,
+       (SELECT COUNT(*)          FROM students s WHERE s.course_id = c.course_id) AS enrolled,
+       (SELECT ROUND(AVG(marks),1) FROM students s WHERE s.course_id = c.course_id) AS avg_marks
+FROM courses c
+ORDER BY c.fee DESC;
+```
+
+```text
++-------------+-------+----------+-----------+
+| course_name | fee   | enrolled | avg_marks |
++-------------+-------+----------+-----------+
+| DSA         | 25000 |        2 |      90.0 |
+| Java        | 20000 |        2 |      60.0 |
+| Cloud       | 18000 |        0 |      NULL |
+| Python      | 15000 |        3 |      53.7 |
+| SQL         | 10000 |        2 |      88.0 |
++-------------+-------+----------+-----------+
+```
+
+Again Cloud gives `0` from `COUNT` but `NULL` from `AVG` — worth repeating,
+students trip on it every time.
+
+A correlated subquery can also compare each row to **its own group**, which is
+the pre-window-function way of finding a per-group maximum:
+
+```sql
+SELECT name, city, marks
+FROM students s1
+WHERE marks = (SELECT MAX(marks) FROM students s2 WHERE s2.city = s1.city)
+ORDER BY city;
+```
+
+```text
++--------------+-----------+-------+
+| name         | city      | marks |
++--------------+-----------+-------+
+| Anita Sharma | Chennai   |    95 |
+| Vikram Rao   | Hyderabad |    81 |
+| Priya Nair   | Kochi     |    66 |
+| Arjun Mehta  | Pune      |    90 |
++--------------+-----------+-------+
+```
+
+The alias pair `s1`/`s2` is what makes it work — `s2` is filtered by `s1`'s
+city. Compare this with the window-function version in §9: same answer, and
+worth showing both so students see *why* window functions were added to SQL.
+
+⚠️ This version returns **every** student tied for the top of their city; the
+`RANK() = 1` version does too, but a `ROW_NUMBER() = 1` version would return
+only one. Ties are where these three approaches quietly differ.
 
 **Key Note:** correlated subqueries are slower, because they run repeatedly. The
 same answer usually comes from a `LEFT JOIN` + `GROUP BY` (Day 13). Know both.

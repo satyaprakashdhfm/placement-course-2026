@@ -112,6 +112,29 @@ name        | city      | age
 Karan Patel | Hyderabad | 20
 ```
 
+Conditions stack up as the question gets more specific:
+
+```sql
+SELECT name, city, marks
+FROM students
+WHERE marks BETWEEN 50 AND 80
+  AND city <> 'Pune'
+ORDER BY marks DESC;
+```
+
+```text
++-------------+-----------+-------+
+| name        | city      | marks |
++-------------+-----------+-------+
+| Rahul Verma | Hyderabad |    78 |
+| Priya Nair  | Kochi     |    66 |
+| Sneha Iyer  | Chennai   |    54 |
++-------------+-----------+-------+
+```
+
+Read the `WHERE` as a sentence: *marks between 50 and 80, and not from Pune.*
+Every extra `AND` narrows the result; every `OR` widens it.
+
 **Key Notes:**
 - Text goes in **single quotes**: `'Hyderabad'`. Double quotes mean a column name.
 - Text comparison is **case-INsensitive** in MySQL by default: `'hyderabad'`

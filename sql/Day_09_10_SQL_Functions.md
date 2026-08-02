@@ -54,6 +54,61 @@ KARAN PATEL  | 11  | Karan
 **Key Note:** SQL strings are **1-indexed**, not 0-indexed like Python.
 `SUBSTRING(name, 1, 5)` is the *first* five characters.
 
+Functions are most useful when they feed something else. Grouping by a computed
+initial:
+
+```sql
+SELECT UPPER(SUBSTRING(name,1,1)) AS initial, COUNT(*) AS n
+FROM students
+GROUP BY initial
+ORDER BY n DESC, initial;
+```
+
+```text
++---------+---+
+| initial | n |
++---------+---+
+| A       | 2 |
+| R       | 2 |
+| D       | 1 |
+| K       | 1 |
+| M       | 1 |
+| P       | 1 |
+| S       | 1 |
+| V       | 1 |
++---------+---+
+```
+
+And a text bar chart, which makes results readable without any tooling:
+
+```sql
+SELECT name, marks,
+       RPAD(REPEAT('#', FLOOR(IFNULL(marks,0)/10)), 10, '.') AS bar
+FROM students
+ORDER BY marks DESC;
+```
+
+```text
++--------------+-------+------------+
+| name         | marks | bar        |
++--------------+-------+------------+
+| Anita Sharma |    95 | #########. |
+| Arjun Mehta  |    90 | #########. |
+| Vikram Rao   |    81 | ########.. |
+| Rahul Verma  |    78 | #######... |
+| Rohit Sinha  |    78 | #######... |
+| Priya Nair   |    66 | ######.... |
+| Sneha Iyer   |    54 | #####..... |
+| Divya Menon  |    45 | ####...... |
+| Karan Patel  |    38 | ###....... |
+| Meera Nair   |  NULL | .......... |
++--------------+-------+------------+
+```
+
+Four functions nested: `REPEAT` builds the bar, `FLOOR(.../10)` scales it,
+`IFNULL` keeps the NULL row from vanishing, `RPAD` pads to a fixed width so the
+column lines up. Read nested calls **inside out**.
+
 📌 **Dialect corner.** MySQL joins strings with **`CONCAT()`**. SQLite,
 PostgreSQL and Oracle use **`||`** — which in MySQL means `OR` and silently
 returns `0`. SQLite spells the substring function `SUBSTR`; MySQL and
@@ -153,6 +208,35 @@ LIMIT 3;
 +--------------+---------------+
 ```
 
+Dates combine with the other functions in the obvious way:
+
+```sql
+SELECT CONCAT(name,' (',city,')')               AS who,
+       DATEDIFF('2025-06-01', joined_on)        AS days_enrolled,
+       DATE_ADD(joined_on, INTERVAL 6 MONTH)    AS review_due
+FROM students
+ORDER BY joined_on
+LIMIT 3;
+```
+
+```text
++-------------------------+---------------+------------+
+| who                     | days_enrolled | review_due |
++-------------------------+---------------+------------+
+| Rahul Verma (Hyderabad) |           137 | 2025-07-15 |
+| Anita Sharma (Chennai)  |           132 | 2025-07-20 |
+| Karan Patel (Hyderabad) |           120 | 2025-08-01 |
++-------------------------+---------------+------------+
+```
+
+`DATE_ADD` understands `INTERVAL n DAY | WEEK | MONTH | QUARTER | YEAR`, and it
+handles month lengths properly — adding 1 month to 31 January gives 28 February,
+not an invalid date.
+
+> ⚠️ Use a **fixed date** like `'2025-06-01'` in notes and tests. Writing
+> `CURDATE()` means the output changes every day and nobody can tell whether the
+> query broke or the calendar moved.
+
 📌 **Dialect corner — dates are where the three differ most.**
 
 | Job | **MySQL** | **SQLite** | **PostgreSQL** |
@@ -196,6 +280,34 @@ total | with_marks | total_marks | avg_marks | lowest | highest
 ```
 
 Ten rows collapse into **one**.
+
+The same aggregates per group, with a spread measure:
+
+```sql
+SELECT city, COUNT(*) AS n, SUM(marks) AS total,
+       ROUND(AVG(marks),1) AS avg, ROUND(STDDEV(marks),2) AS std
+FROM students
+WHERE marks IS NOT NULL
+GROUP BY city
+ORDER BY avg DESC;
+```
+
+```text
++-----------+---+-------+------+------+
+| city      | n | total | avg  | std  |
++-----------+---+-------+------+------+
+| Pune      | 2 |   168 | 84.0 |    6 |
+| Chennai   | 2 |   149 | 74.5 | 20.5 |
+| Hyderabad | 3 |   197 | 65.7 | 19.6 |
+| Kochi     | 2 |   111 | 55.5 | 10.5 |
++-----------+---+-------+------+------+
+```
+
+`STDDEV` shows how *spread out* a group is. Chennai and Pune have similar
+averages but very different consistency — the average alone hides that, which is
+a point worth making whenever you teach `AVG`.
+
+Other aggregates worth knowing: `VARIANCE`, `BIT_OR`, and `COUNT(DISTINCT col)`.
 
 ### ⚠️ AVG ignores NULL — this is exam material
 
@@ -271,6 +383,31 @@ Meera Nair   | NULL  | Not graded
   matters — put the strictest first.
 - Without `ELSE`, unmatched rows get `NULL`.
 - `CASE` works in `SELECT`, `WHERE`, `ORDER BY` and `GROUP BY`.
+
+`CASE` has a shorter cousin for two-way choices:
+
+```sql
+SELECT name, marks,
+       IF(marks >= 50, 'Pass', 'Fail')  AS quick,
+       IFNULL(marks, 'not graded')      AS shown
+FROM students
+LIMIT 4;
+```
+
+```text
++--------------+-------+-------+-------+
+| name         | marks | quick | shown |
++--------------+-------+-------+-------+
+| Rahul Verma  |    78 | Pass  | 78    |
+| Anita Sharma |    95 | Pass  | 95    |
+| Karan Patel  |    38 | Fail  | 38    |
+| Priya Nair   |    66 | Pass  | 66    |
++--------------+-------+-------+-------+
+```
+
+`IF(condition, then, else)` is fine for two outcomes. Use `CASE` for three or
+more — and remember `IF()` is **MySQL-only**; `CASE` is standard SQL and works
+everywhere.
 
 ### NULL handling
 

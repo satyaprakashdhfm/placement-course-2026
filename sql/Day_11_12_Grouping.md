@@ -54,6 +54,36 @@ Kochi     | 2        | 55.5
 Read it as: *make one row per city; for each, count the rows and average the
 marks.*
 
+Aggregates combine freely, and you can calculate with them:
+
+```sql
+SELECT city,
+       COUNT(*)               AS n,
+       MIN(marks)             AS lowest,
+       MAX(marks)             AS highest,
+       MAX(marks)-MIN(marks)  AS spread
+FROM students
+WHERE marks IS NOT NULL
+GROUP BY city
+ORDER BY spread DESC;
+```
+
+```text
++-----------+---+--------+---------+--------+
+| city      | n | lowest | highest | spread |
++-----------+---+--------+---------+--------+
+| Hyderabad | 3 |     38 |      81 |     43 |
+| Chennai   | 2 |     54 |      95 |     41 |
+| Kochi     | 2 |     45 |      66 |     21 |
+| Pune      | 2 |     78 |      90 |     12 |
++-----------+---+--------+---------+--------+
+```
+
+`MAX(marks)-MIN(marks)` is an ordinary expression built from two aggregates —
+and because it is computed in `SELECT`, you can sort by its alias in
+`ORDER BY`. **Spread** is a genuinely useful teaching number: Hyderabad and
+Chennai have the same headline average story but very different consistency.
+
 ### The golden rule
 
 > Every column in `SELECT` must either be **in the `GROUP BY`**, or be inside an

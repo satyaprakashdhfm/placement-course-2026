@@ -219,6 +219,28 @@ Deepa    | Bhavna
 Esha     | Bhavna
 ```
 
+Add a `CASE` and the output explains itself:
+
+```sql
+SELECT e.emp_name AS employee, m.emp_name AS manager,
+       CASE WHEN m.emp_id IS NULL THEN 'Top level' ELSE 'Reports up' END AS position
+FROM employees e
+LEFT JOIN employees m ON e.manager_id = m.emp_id
+ORDER BY e.emp_id;
+```
+
+```text
++----------+---------+------------+
+| employee | manager | position   |
++----------+---------+------------+
+| Anil     | NULL    | Top level  |
+| Bhavna   | Anil    | Reports up |
+| Chetan   | Anil    | Reports up |
+| Deepa    | Bhavna  | Reports up |
+| Esha     | Bhavna  | Reports up |
++----------+---------+------------+
+```
+
 **Key Notes:**
 - Aliases are **compulsory** here — `e` and `m` are the same table twice, and
   without different names SQL cannot tell them apart.
@@ -253,6 +275,74 @@ Cloud       | 0
 > `LEFT JOIN` produces one row for Cloud with all-NULL student columns — so
 > `COUNT(*)` would report **1** for Cloud instead of 0. `COUNT(s.id)` skips
 > NULLs and correctly gives 0. This is a favourite interview trap.
+
+### A join that answers a business question
+
+Once tables are joined, aggregates and expressions work across both:
+
+```sql
+SELECT c.course_name,
+       COUNT(s.id)                        AS enrolled,
+       ROUND(AVG(s.marks),2)              AS avg_marks,
+       ROUND(COUNT(s.id) * c.fee / 1000, 1) AS revenue_k
+FROM courses c
+LEFT JOIN students s ON s.course_id = c.course_id
+GROUP BY c.course_id, c.course_name, c.fee
+ORDER BY revenue_k DESC;
+```
+
+```text
++-------------+----------+-----------+-----------+
+| course_name | enrolled | avg_marks | revenue_k |
++-------------+----------+-----------+-----------+
+| DSA         |        2 |     90.00 |      50.0 |
+| Python      |        3 |     53.67 |      45.0 |
+| Java        |        2 |     60.00 |      40.0 |
+| SQL         |        2 |     88.00 |      20.0 |
+| Cloud       |        0 |      NULL |       0.0 |
++-------------+----------+-----------+-----------+
+```
+
+Three things worth pointing at in that output:
+
+- **Python has the most students but not the most revenue** — the kind of answer
+  a single table cannot give.
+- **Cloud shows `0` enrolled but `NULL` average.** `COUNT` of nothing is 0;
+  `AVG` of nothing is `NULL`. Not a bug, and a good discussion.
+- `GROUP BY c.course_id, c.course_name, c.fee` groups by the **key** and carries
+  the other columns along. Grouping by `course_name` alone would break if two
+  courses ever shared a name.
+
+### Joining, then classifying
+
+```sql
+SELECT s.name, s.city, c.course_name, c.duration,
+       CASE WHEN c.duration >= 60 THEN 'Long'
+            WHEN c.duration >= 40 THEN 'Medium'
+            ELSE 'Short' END AS length_band
+FROM students s
+JOIN courses c ON s.course_id = c.course_id
+WHERE s.marks IS NOT NULL
+ORDER BY c.duration DESC, s.marks DESC
+LIMIT 6;
+```
+
+```text
++-------------+-----------+-------------+----------+-------------+
+| name        | city      | course_name | duration | length_band |
++-------------+-----------+-------------+----------+-------------+
+| Arjun Mehta | Pune      | DSA         |       90 | Long        |
+| Priya Nair  | Kochi     | Java        |       60 | Long        |
+| Sneha Iyer  | Chennai   | Java        |       60 | Long        |
+| Rahul Verma | Hyderabad | Python      |       45 | Medium      |
+| Divya Menon | Kochi     | Python      |       45 | Medium      |
+| Karan Patel | Hyderabad | Python      |       45 | Medium      |
++-------------+-----------+-------------+----------+-------------+
+```
+
+Note `ORDER BY c.duration DESC, s.marks DESC` — a **two-level sort**, by course
+length first and marks within it. This is also a good moment to show that the
+`CASE` from Day 9 works on a joined column just like any other.
 
 Joining three tables works the same way — chain the joins:
 

@@ -85,6 +85,8 @@ real server.
 
 ## 3. CREATE
 
+### The smallest table that works
+
 ```sql
 CREATE DATABASE IF NOT EXISTS training;
 USE training;
@@ -96,6 +98,144 @@ CREATE TABLE courses (
     fee         INT
 );
 ```
+
+Three things are happening: a name, a type, and optional rules per column.
+`IF NOT EXISTS` makes the script re-runnable — always use it in a setup file.
+
+### The same table, written the way you would at work
+
+```sql
+CREATE TABLE employees_v2 (
+    emp_id     INT PRIMARY KEY AUTO_INCREMENT,
+    emp_name   VARCHAR(60)  NOT NULL,
+    email      VARCHAR(120) UNIQUE,
+    dept       ENUM('CS','ECE','MECH') NOT NULL DEFAULT 'CS',
+    salary     DECIMAL(10,2) CHECK (salary > 0),
+    hired_on   DATE NOT NULL,
+    manager_id INT,
+    is_active  BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_mgr FOREIGN KEY (manager_id) REFERENCES employees_v2(emp_id)
+        ON DELETE SET NULL,
+    INDEX idx_dept_salary (dept, salary)
+) ENGINE=InnoDB;
+```
+
+```sql
+INSERT INTO employees_v2 (emp_name,email,dept,salary,hired_on,manager_id) VALUES
+ ('Anil Kumar','anil@x.com','CS',90000,'2020-03-01',NULL),
+ ('Bhavna Rao','bhavna@x.com','CS',70000,'2021-06-15',1),
+ ('Chetan Das','chetan@x.com','ECE',65000,'2022-01-10',1);
+
+SELECT emp_id, emp_name, dept, salary, is_active FROM employees_v2;
+```
+
+```text
++--------+------------+------+----------+-----------+
+| emp_id | emp_name   | dept | salary   | is_active |
++--------+------------+------+----------+-----------+
+|      1 | Anil Kumar | CS   | 90000.00 |         1 |
+|      2 | Bhavna Rao | CS   | 70000.00 |         1 |
+|      3 | Chetan Das | ECE  | 65000.00 |         1 |
++--------+------------+------+----------+-----------+
+```
+
+Every addition earns its place:
+
+| Feature | Why it is there |
+|---|---|
+| `AUTO_INCREMENT` | never invent ids by hand |
+| `UNIQUE` on email | the database refuses duplicates, not the app |
+| `ENUM ... DEFAULT` | a fixed set of values, one of them assumed |
+| `DECIMAL(10,2)` | money — never `FLOAT` |
+| `BOOLEAN DEFAULT TRUE` | soft-delete flag instead of deleting rows |
+| `created_at` / `updated_at` | audit columns; `ON UPDATE` maintains itself |
+| **named** `CONSTRAINT fk_mgr` | the name appears in the error — worth naming |
+| **self**-referencing FK | `manager_id` points at this same table |
+| `INDEX idx_dept_salary` | declared with the table, not bolted on later |
+| `ENGINE=InnoDB` | explicit, though it is the default |
+
+`DESCRIBE` shows what MySQL actually built:
+
+```text
++------------+-------------------------+------+-----+-------------------+-----------------------------------------------+
+| Field      | Type                    | Null | Key | Default           | Extra                                         |
++------------+-------------------------+------+-----+-------------------+-----------------------------------------------+
+| emp_id     | int                     | NO   | PRI | NULL              | auto_increment                                |
+| emp_name   | varchar(60)             | NO   |     | NULL              |                                               |
+| email      | varchar(120)            | YES  | UNI | NULL              |                                               |
+| dept       | enum('CS','ECE','MECH') | NO   | MUL | CS                |                                               |
+| salary     | decimal(10,2)           | YES  |     | NULL              |                                               |
+| hired_on   | date                    | NO   |     | NULL              |                                               |
+| manager_id | int                     | YES  | MUL | NULL              |                                               |
+| is_active  | tinyint(1)              | YES  |     | 1                 |                                               |
+| created_at | timestamp               | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED                             |
+| updated_at | timestamp               | YES  |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP                   |
++------------+-------------------------+------+-----+-------------------+-----------------------------------------------+
+```
+
+Two things to point out from that output:
+
+- **`BOOLEAN` is really `tinyint(1)`.** MySQL has no true boolean type; `TRUE`
+  is 1 and `FALSE` is 0. 📌 PostgreSQL has a genuine `BOOLEAN`.
+- `Key` shows `PRI`, `UNI` and `MUL` — `MUL` means "first column of a
+  non-unique index", which is why `dept` and `manager_id` are marked.
+
+### A link table with a composite key
+
+The third shape you meet constantly: a table that exists only to connect two
+others, keyed on the pair.
+
+```sql
+CREATE TABLE attendance (
+    student_id INT,
+    class_date DATE,
+    status     ENUM('present','absent','late') DEFAULT 'present',
+    PRIMARY KEY (student_id, class_date),
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+INSERT INTO attendance VALUES
+ (101,'2025-06-01','present'), (101,'2025-06-02','absent'), (102,'2025-06-01','late');
+
+SELECT * FROM attendance;
+```
+
+```text
++------------+------------+---------+
+| student_id | class_date | status  |
++------------+------------+---------+
+|        101 | 2025-06-01 | present |
+|        101 | 2025-06-02 | absent  |
+|        102 | 2025-06-01 | late    |
++------------+------------+---------+
+```
+
+One student appears on many dates and one date has many students, but the
+**pair** is unique — so a student cannot be marked twice for the same day. That
+is the composite key doing real work, not just theory.
+
+`ON DELETE CASCADE` means deleting a student deletes their attendance too, which
+is correct here: attendance has no meaning without the student.
+
+### Creating a table from a query
+
+Two more forms worth knowing:
+
+```sql
+CREATE TABLE toppers_snapshot AS
+SELECT id, name, marks FROM students WHERE marks >= 75;   -- structure + data
+
+CREATE TABLE students_empty LIKE students;                -- structure only
+```
+
+`CREATE TABLE ... AS SELECT` (often written CTAS) is how you take a snapshot,
+build a reporting table, or stage a migration.
+
+⚠️ CTAS copies the **columns and data but not the keys, indexes or
+auto-increment**. `CREATE TABLE ... LIKE` copies the full structure with
+indexes but no rows. Neither copies foreign keys.
 
 ### AUTO_INCREMENT — let MySQL number the rows
 
