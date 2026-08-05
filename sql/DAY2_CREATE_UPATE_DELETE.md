@@ -1,173 +1,3 @@
-# CREATE TABLE in MySQL
-
-In this notebook, we will learn different ways of creating tables in MySQL.
-
----
-
-## Step 1: Create a Database
-
-```sql
-CREATE DATABASE IF NOT EXISTS training;
-```
-
----
-
-## Step 2: Select the Database
-
-```sql
-USE training;
-```
-
----
-
-## 1. Create a Table
-
-Creates a new table named `courses`.
-
-```sql
-CREATE TABLE courses (
-    course_id   INT PRIMARY KEY,
-    course_name VARCHAR(50) NOT NULL,
-    duration    INT,
-    fee         INT
-);
-```
-
----
-
-## 2. Create a Table Only If It Does Not Exist
-
-Prevents an error if the table already exists.
-
-```sql
-CREATE TABLE IF NOT EXISTS courses (
-    course_id   INT PRIMARY KEY,
-    course_name VARCHAR(50) NOT NULL,
-    duration    INT,
-    fee         INT
-);
-```
-
----
-
-## 3. Insert Sample Records
-
-Insert some data into the `courses` table.
-
-```sql
-INSERT INTO courses VALUES
-(101, 'Python', 30, 5000),
-(102, 'Java', 45, 7000),
-(103, 'SQL', 20, 3000),
-(104, 'Web Development', 60, 9000);
-```
-
----
-
-## 4. Create a Table from an Existing Table (Structure + Data)
-
-Copies both the table structure and all the data.
-
-```sql
-CREATE TABLE courses_backup AS
-SELECT *
-FROM courses;
-```
-
----
-
-## 5. Create a Table with Structure Only
-
-Copies only the table structure without any records.
-
-```sql
-CREATE TABLE courses_empty AS
-SELECT *
-FROM courses
-WHERE 1 = 0;
-```
-
----
-
-## 6. Create a Table with Selected Columns
-
-Copies only specific columns from an existing table.
-
-```sql
-CREATE TABLE course_catalog AS
-SELECT
-    course_id,
-    course_name
-FROM courses;
-```
-
----
-
-## 7. Create a Table with Selected Rows
-
-Copies only the records that satisfy a condition.
-
-```sql
-CREATE TABLE premium_courses AS
-SELECT *
-FROM courses
-WHERE fee >= 7000;
-```
-
----
-
-## 8. Create a Table Using LIKE
-
-Copies the complete table structure, including indexes and constraints, but not the data.
-
-```sql
-CREATE TABLE courses_clone LIKE courses;
-```
-
----
-
-## 9. Create a Temporary Table
-
-Temporary tables exist only for the current database session.
-
-```sql
-CREATE TEMPORARY TABLE temp_courses (
-    course_id   INT,
-    course_name VARCHAR(50)
-);
-```
-
----
-
-## 10. Create a Table with AUTO_INCREMENT
-
-Automatically generates a unique ID for each new record.
-
-```sql
-CREATE TABLE trainers (
-    trainer_id   INT AUTO_INCREMENT PRIMARY KEY,
-    trainer_name VARCHAR(50),
-    experience   INT
-);
-```
-
----
-
-## Summary
-
-| Method | Description |
-|---------|-------------|
-| `CREATE TABLE` | Creates a new table |
-| `CREATE TABLE IF NOT EXISTS` | Creates the table only if it doesn't exist |
-| `CREATE TABLE AS SELECT` | Copies structure and data |
-| `CREATE TABLE AS SELECT ... WHERE 1=0` | Copies only the structure |
-| `CREATE TABLE AS SELECT column1, column2` | Copies selected columns |
-| `CREATE TABLE AS SELECT ... WHERE condition` | Copies selected rows |
-| `CREATE TABLE LIKE` | Copies complete table structure |
-| `CREATE TEMPORARY TABLE` | Creates a temporary table |
-| `AUTO_INCREMENT` | Generates automatic IDs |
-
-
 # MySQL - Database and Table Basics
 
 In this section, we will learn how to create a database, select a database, and view the available databases before creating tables.
@@ -416,4 +246,1484 @@ USE training;
 | `SELECT DATABASE()`             | Displays the current database                  |
 | `DROP DATABASE`                 | Deletes a database                             |
 | `DROP DATABASE IF EXISTS`       | Deletes the database only if it exists         |
+
+
+# Tables in MySQL
+
+A **table** is used to store related data in the form of **rows** and **columns**.
+
+Some important points:
+
+* Every table belongs to a database.
+* A table consists of columns (fields) and rows (records).
+* Each column stores a specific type of data.
+* Every table should have a unique name within a database.
+
+---
+
+# Table Structure
+
+A table is made up of columns, where each column has:
+
+* A column name
+* A data type
+* Optional constraints
+
+Example:
+
+| Column Name | Data Type   | Description            |
+| ----------- | ----------- | ---------------------- |
+| course_id   | INT         | Unique course ID       |
+| course_name | VARCHAR(50) | Name of the course     |
+| duration    | INT         | Course duration (days) |
+| fee         | INT         | Course fee             |
+
+---
+
+# Common MySQL Data Types
+
+The following are the most commonly used MySQL data types.
+
+| Data Type     | Description                    | Example               |
+| ------------- | ------------------------------ | --------------------- |
+| INT           | Integer values                 | 100                   |
+| BIGINT        | Large integer values           | 9999999999            |
+| FLOAT         | Decimal numbers                | 89.75                 |
+| DOUBLE        | High precision decimal numbers | 12345.6789            |
+| DECIMAL(10,2) | Fixed decimal values           | 1999.99               |
+| CHAR(n)       | Fixed-length string            | 'A'                   |
+| VARCHAR(n)    | Variable-length string         | 'Python'              |
+| TEXT          | Large text                     | Description           |
+| DATE          | Date                           | '2026-08-05'          |
+| TIME          | Time                           | '14:30:00'            |
+| DATETIME      | Date and Time                  | '2026-08-05 14:30:00' |
+| BOOLEAN       | TRUE or FALSE                  | TRUE                  |
+
+---
+
+# Constraints in MySQL
+
+Constraints are rules applied to columns to maintain data accuracy and integrity.
+
+| Constraint     | Purpose                         | Example          |
+| -------------- | ------------------------------- | ---------------- |
+| PRIMARY KEY    | Uniquely identifies each record | course_id        |
+| NOT NULL       | Prevents NULL values            | course_name      |
+| UNIQUE         | Prevents duplicate values       | email            |
+| DEFAULT        | Assigns a default value         | fee DEFAULT 5000 |
+| CHECK          | Restricts allowed values        | fee > 0          |
+| AUTO_INCREMENT | Generates values automatically  | student_id       |
+| FOREIGN KEY    | Links two tables                | department_id    |
+
+---
+
+# Sample Table Using Constraints
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    duration INT,
+    fee INT DEFAULT 5000
+);
+```
+
+---
+
+# View All Tables
+
+The `SHOW TABLES` command displays all tables present in the selected database.
+
+### Syntax
+
+```sql
+SHOW TABLES;
+```
+
+### Example
+
+```sql
+SHOW TABLES;
+```
+
+### Sample Output
+
+```
++------------------+
+| Tables_in_training |
++------------------+
+| courses          |
+| trainers         |
++------------------+
+```
+
+---
+
+# Describe a Table
+
+The `DESCRIBE` (or `DESC`) command displays the table structure.
+
+### Syntax
+
+```sql
+DESCRIBE table_name;
+```
+
+### Example
+
+```sql
+DESCRIBE courses;
+```
+
+or
+
+```sql
+DESC courses;
+```
+
+### Sample Output
+
+```
++-------------+-------------+------+-----+---------+-------+
+| Field       | Type        | Null | Key | Default | Extra |
++-------------+-------------+------+-----+---------+-------+
+| course_id   | int         | NO   | PRI | NULL    |       |
+| course_name | varchar(50) | NO   |     | NULL    |       |
+| duration    | int         | YES  |     | NULL    |       |
+| fee         | int         | YES  |     | 5000    |       |
++-------------+-------------+------+-----+---------+-------+
+```
+
+---
+
+# View the CREATE TABLE Statement
+
+This command displays the exact SQL statement used to create the table.
+
+### Syntax
+
+```sql
+SHOW CREATE TABLE table_name;
+```
+
+### Example
+
+```sql
+SHOW CREATE TABLE courses;
+```
+
+---
+
+# Common Errors
+
+## Error 1: No Database Selected
+
+```
+ERROR 1046 (3D000): No database selected
+```
+
+**Solution**
+
+```sql
+USE training;
+```
+
+---
+
+## Error 2: Table Doesn't Exist
+
+```
+ERROR 1146 (42S02): Table 'training.courses' doesn't exist
+```
+
+**Solution**
+
+First create the table.
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50)
+);
+```
+
+---
+
+# Commands Covered
+
+| Command                         | Purpose                             |
+| ------------------------------- | ----------------------------------- |
+| `SHOW TABLES;`                  | Displays all tables                 |
+| `DESCRIBE table_name;`          | Shows table structure               |
+| `DESC table_name;`              | Short form of DESCRIBE              |
+| `SHOW CREATE TABLE table_name;` | Displays the CREATE TABLE statement |
+
+
+# Creating Tables in MySQL
+
+A table is used to store related data in rows and columns. Before creating a table, make sure a database is selected using the `USE` command.
+
+---
+
+# Basic Syntax
+
+```sql
+CREATE TABLE table_name (
+    column_name datatype constraint,
+    column_name datatype constraint,
+    ...
+);
+```
+
+---
+
+# 1. Create a Table
+
+Creates a new table with the specified columns and constraints.
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    duration INT,
+    fee INT
+);
+```
+
+### Expected Output
+
+```
+Query OK, 0 rows affected
+```
+
+---
+
+# 2. Create a Table Only If It Does Not Exist
+
+Use `IF NOT EXISTS` to avoid an error if the table already exists.
+
+```sql
+CREATE TABLE IF NOT EXISTS courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    duration INT,
+    fee INT
+);
+```
+
+### Expected Output
+
+```
+Query OK, 0 rows affected
+```
+
+or
+
+```
+Query OK, 0 rows affected, 1 warning
+```
+
+---
+
+# 3. Create a Table from an Existing Table (Structure + Data)
+
+Copies both the table structure and all existing records.
+
+```sql
+CREATE TABLE courses_backup AS
+SELECT *
+FROM courses;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses_backup;
+```
+
+---
+
+# 4. Create a Table with Structure Only
+
+Copies only the column structure without copying any data.
+
+This is useful when you need another table with the same design but want to insert data later.
+
+```sql
+CREATE TABLE courses_empty AS
+SELECT *
+FROM courses
+WHERE 1 = 0;
+```
+
+### Verify
+
+```sql
+DESC courses_empty;
+```
+
+```sql
+SELECT * FROM courses_empty;
+```
+
+---
+
+# 5. Create a Table with Selected Columns
+
+Copies only specific columns from an existing table.
+
+```sql
+CREATE TABLE course_catalog AS
+SELECT
+    course_id,
+    course_name
+FROM courses;
+```
+
+### Verify
+
+```sql
+DESC course_catalog;
+```
+
+---
+
+# 6. Create a Table with Selected Rows
+
+Copies only the records that satisfy the given condition.
+
+```sql
+CREATE TABLE premium_courses AS
+SELECT *
+FROM courses
+WHERE fee >= 7000;
+```
+
+### Verify
+
+```sql
+SELECT * FROM premium_courses;
+```
+
+---
+
+# 7. Create a Table Using LIKE
+
+The `LIKE` keyword copies the complete table structure.
+
+It copies:
+
+* Column names
+* Data types
+* Primary Key
+* Indexes
+* AUTO_INCREMENT
+
+It does **not** copy the data.
+
+```sql
+CREATE TABLE courses_clone LIKE courses;
+```
+
+### Verify
+
+```sql
+DESC courses_clone;
+```
+
+---
+
+# 8. Create a Temporary Table
+
+A temporary table exists only during the current database session.
+
+Once the session ends, the table is automatically removed.
+
+```sql
+CREATE TEMPORARY TABLE temp_courses (
+    course_id INT,
+    course_name VARCHAR(50)
+);
+```
+
+### Verify
+
+```sql
+SHOW TABLES;
+```
+
+---
+
+# 9. Create a Table with AUTO_INCREMENT
+
+The `AUTO_INCREMENT` attribute automatically generates sequential values.
+
+You do not need to provide the ID while inserting records.
+
+```sql
+CREATE TABLE trainers (
+    trainer_id INT AUTO_INCREMENT PRIMARY KEY,
+    trainer_name VARCHAR(50),
+    experience INT
+);
+```
+
+### Example
+
+```sql
+INSERT INTO trainers(trainer_name, experience)
+VALUES
+('Rahul', 5),
+('Anita', 8);
+```
+
+### Verify
+
+```sql
+SELECT * FROM trainers;
+```
+
+---
+
+# Common Errors
+
+## Error 1: Table Already Exists
+
+```
+ERROR 1050 (42S01): Table 'courses' already exists
+```
+
+### Solution
+
+```sql
+CREATE TABLE IF NOT EXISTS courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50)
+);
+```
+
+---
+
+## Error 2: No Database Selected
+
+```
+ERROR 1046 (3D000): No database selected
+```
+
+### Solution
+
+```sql
+USE training;
+```
+
+---
+
+## Error 3: Duplicate Column Name
+
+```
+ERROR 1060 (42S21): Duplicate column name 'course_id'
+```
+
+### Incorrect
+
+```sql
+CREATE TABLE courses (
+    course_id INT,
+    course_id INT
+);
+```
+
+### Correct
+
+```sql
+CREATE TABLE courses (
+    course_id INT,
+    course_name VARCHAR(50)
+);
+```
+
+---
+
+## Error 4: Syntax Error
+
+```
+ERROR 1064 (42000): You have an error in your SQL syntax...
+```
+
+### Incorrect
+
+```sql
+CREATE TABLE courses
+course_id INT,
+course_name VARCHAR(50);
+```
+
+### Correct
+
+```sql
+CREATE TABLE courses (
+    course_id INT,
+    course_name VARCHAR(50)
+);
+```
+
+---
+
+# Summary
+
+| Method                                       | Description                                 |
+| -------------------------------------------- | ------------------------------------------- |
+| `CREATE TABLE`                               | Creates a new table                         |
+| `CREATE TABLE IF NOT EXISTS`                 | Creates the table only if it does not exist |
+| `CREATE TABLE AS SELECT`                     | Copies structure and data                   |
+| `CREATE TABLE AS SELECT ... WHERE 1=0`       | Copies only the structure                   |
+| `CREATE TABLE AS SELECT column1, column2`    | Copies selected columns                     |
+| `CREATE TABLE AS SELECT ... WHERE condition` | Copies selected rows                        |
+| `CREATE TABLE LIKE`                          | Copies the complete table structure         |
+| `CREATE TEMPORARY TABLE`                     | Creates a temporary table                   |
+| `AUTO_INCREMENT`                             | Automatically generates IDs                 |
+
+# Inserting Data into Tables
+
+The `INSERT INTO` statement is used to add new records into a table.
+
+Some important points:
+
+* Data must match the column data types.
+* Values are inserted in the same order as the columns unless column names are specified.
+* String values should be enclosed in single quotes (`' '`).
+* If a column has `AUTO_INCREMENT`, you do not need to provide its value.
+
+---
+
+# Current Table
+
+We will use the following table throughout this section.
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    duration INT,
+    fee INT
+);
+```
+
+---
+
+# 1. Insert a Single Record
+
+Use `INSERT INTO` with one set of values.
+
+### Syntax
+
+```sql
+INSERT INTO table_name
+VALUES (...);
+```
+
+### Example
+
+```sql
+INSERT INTO courses
+VALUES (101, 'Python', 30, 5000);
+```
+
+### Expected Output
+
+```
+Query OK, 1 row affected
+```
+
+---
+
+# Verify the Record
+
+```sql
+SELECT * FROM courses;
+```
+
+### Sample Output
+
+```
++-----------+-------------+----------+------+
+| course_id | course_name | duration | fee  |
++-----------+-------------+----------+------+
+| 101       | Python      | 30       | 5000 |
++-----------+-------------+----------+------+
+```
+
+---
+
+# 2. Insert Multiple Records
+
+You can insert multiple rows using a single statement.
+
+### Syntax
+
+```sql
+INSERT INTO table_name
+VALUES
+(...),
+(...),
+(...);
+```
+
+### Example
+
+```sql
+INSERT INTO courses
+VALUES
+(102, 'Java', 45, 7000),
+(103, 'SQL', 20, 3000),
+(104, 'Web Development', 60, 9000);
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+# 3. Insert Values into Selected Columns
+
+If you do not want to insert values into every column, specify the column names.
+
+### Syntax
+
+```sql
+INSERT INTO table_name(column1, column2)
+VALUES (...);
+```
+
+### Example
+
+```sql
+CREATE TABLE trainers (
+    trainer_id INT AUTO_INCREMENT PRIMARY KEY,
+    trainer_name VARCHAR(50),
+    experience INT
+);
+```
+
+```sql
+INSERT INTO trainers(trainer_name, experience)
+VALUES ('Rahul', 5);
+```
+
+Since `trainer_id` is `AUTO_INCREMENT`, MySQL generates it automatically.
+
+---
+
+# Verify
+
+```sql
+SELECT * FROM trainers;
+```
+
+---
+
+# 4. Insert Multiple Records into Selected Columns
+
+```sql
+INSERT INTO trainers(trainer_name, experience)
+VALUES
+('Anita', 8),
+('Kiran', 4),
+('David', 6);
+```
+
+---
+
+# 5. Insert Data from Another Table
+
+Copies records from one table into another.
+
+### Example
+
+```sql
+CREATE TABLE courses_backup AS
+SELECT *
+FROM courses
+WHERE 1 = 0;
+```
+
+```sql
+INSERT INTO courses_backup
+SELECT *
+FROM courses;
+```
+
+---
+
+# Verify
+
+```sql
+SELECT * FROM courses_backup;
+```
+
+---
+
+# 6. Insert Only Selected Columns from Another Table
+
+```sql
+CREATE TABLE course_catalog (
+    course_id INT,
+    course_name VARCHAR(50)
+);
+```
+
+```sql
+INSERT INTO course_catalog(course_id, course_name)
+SELECT
+course_id,
+course_name
+FROM courses;
+```
+
+---
+
+# Common Errors
+
+## Error 1: Duplicate Primary Key
+
+```sql
+INSERT INTO courses
+VALUES (101, 'C Programming', 25, 4000);
+```
+
+### Error
+
+```
+ERROR 1062 (23000):
+Duplicate entry '101' for key 'PRIMARY'
+```
+
+### Reason
+
+A Primary Key must always be unique.
+
+---
+
+## Error 2: Column Count Doesn't Match
+
+```sql
+INSERT INTO courses
+VALUES (105, 'Java');
+```
+
+### Error
+
+```
+ERROR 1136 (21S01):
+Column count doesn't match value count at row 1
+```
+
+### Reason
+
+The number of values does not match the number of columns.
+
+---
+
+## Error 3: Cannot Insert NULL
+
+```sql
+INSERT INTO courses
+VALUES (106, NULL, 20, 3000);
+```
+
+### Error
+
+```
+ERROR 1048 (23000):
+Column 'course_name' cannot be null
+```
+
+### Reason
+
+The `course_name` column has the `NOT NULL` constraint.
+
+---
+
+## Error 4: Incorrect Data Type
+
+```sql
+INSERT INTO courses
+VALUES ('ABC', 'Python', 30, 5000);
+```
+
+### Error
+
+```
+ERROR 1366 (HY000):
+Incorrect integer value: 'ABC'
+```
+
+### Reason
+
+`course_id` is of type `INT`.
+
+---
+
+# Commands Covered
+
+| Command                               | Purpose                        |
+| ------------------------------------- | ------------------------------ |
+| `INSERT INTO ... VALUES`              | Inserts one record             |
+| `INSERT INTO ... VALUES (...), (...)` | Inserts multiple records       |
+| `INSERT INTO(column1, column2)`       | Inserts selected columns       |
+| `INSERT INTO ... SELECT`              | Copies data from another table |
+
+---
+
+# Practice Questions
+
+1. Create a table named `students`.
+2. Insert one student record.
+3. Insert five student records using a single statement.
+4. Create a backup table named `students_backup`.
+5. Copy all records into `students_backup`.
+6. Create a table containing only `student_id` and `student_name`.
+7. Verify all inserted records using `SELECT *`.
+
+
+
+# ALTER TABLE in MySQL
+
+The `ALTER TABLE` statement is used to modify the structure of an existing table.
+
+Some important points:
+
+* It does **not** delete the existing data (in most cases).
+* You can add, remove, rename, or modify columns.
+* You can also rename the table.
+* `ALTER TABLE` changes only the table structure.
+
+---
+
+# Current Table
+
+We will use the following table throughout this section.
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50) NOT NULL,
+    duration INT,
+    fee INT
+);
+```
+
+---
+
+# 1. Add a New Column
+
+Use the `ADD COLUMN` clause to add a new column.
+
+### Syntax
+
+```sql
+ALTER TABLE table_name
+ADD COLUMN column_name datatype;
+```
+
+### Example
+
+```sql
+ALTER TABLE courses
+ADD COLUMN trainer_name VARCHAR(50);
+```
+
+### Verify
+
+```sql
+DESC courses;
+```
+
+---
+
+# 2. Add Multiple Columns
+
+You can add more than one column in a single statement.
+
+```sql
+ALTER TABLE courses
+ADD COLUMN start_date DATE,
+ADD COLUMN mode VARCHAR(20);
+```
+
+### Verify
+
+```sql
+DESC courses;
+```
+
+---
+
+# 3. Modify the Data Type of a Column
+
+Use the `MODIFY COLUMN` clause to change the data type.
+
+### Syntax
+
+```sql
+ALTER TABLE table_name
+MODIFY COLUMN column_name new_datatype;
+```
+
+### Example
+
+Increase the size of the `course_name` column.
+
+```sql
+ALTER TABLE courses
+MODIFY COLUMN course_name VARCHAR(100);
+```
+
+### Verify
+
+```sql
+DESC courses;
+```
+
+---
+
+# 4. Rename a Column
+
+Use the `RENAME COLUMN` clause to rename an existing column.
+
+### Syntax
+
+```sql
+ALTER TABLE table_name
+RENAME COLUMN old_name TO new_name;
+```
+
+### Example
+
+```sql
+ALTER TABLE courses
+RENAME COLUMN fee TO course_fee;
+```
+
+### Verify
+
+```sql
+DESC courses;
+```
+
+---
+
+# 5. Rename a Table
+
+The `RENAME TO` clause changes the table name.
+
+### Syntax
+
+```sql
+ALTER TABLE table_name
+RENAME TO new_table_name;
+```
+
+### Example
+
+```sql
+ALTER TABLE courses
+RENAME TO course_details;
+```
+
+### Verify
+
+```sql
+SHOW TABLES;
+```
+
+---
+
+# 6. Drop a Column
+
+Use the `DROP COLUMN` clause to remove an existing column.
+
+### Syntax
+
+```sql
+ALTER TABLE table_name
+DROP COLUMN column_name;
+```
+
+### Example
+
+```sql
+ALTER TABLE course_details
+DROP COLUMN trainer_name;
+```
+
+### Verify
+
+```sql
+DESC course_details;
+```
+
+---
+
+# 7. Change the Position of a Column
+
+Use the `FIRST` keyword to move a column to the beginning.
+
+```sql
+ALTER TABLE course_details
+MODIFY COLUMN course_fee INT FIRST;
+```
+
+### Verify
+
+```sql
+DESC course_details;
+```
+
+---
+
+# 8. Place a Column After Another Column
+
+Use the `AFTER` keyword to place a column in a specific position.
+
+```sql
+ALTER TABLE course_details
+MODIFY COLUMN course_fee INT
+AFTER duration;
+```
+
+### Verify
+
+```sql
+DESC course_details;
+```
+
+---
+
+# 9. Add a Default Value
+
+```sql
+ALTER TABLE course_details
+ALTER COLUMN mode
+SET DEFAULT 'Offline';
+```
+
+> **Note:** The syntax for setting a default value can vary slightly between MySQL versions. Another common approach is:
+
+```sql
+ALTER TABLE course_details
+MODIFY COLUMN mode VARCHAR(20) DEFAULT 'Offline';
+```
+
+---
+
+# 10. Remove a Default Value
+
+```sql
+ALTER TABLE course_details
+ALTER COLUMN mode
+DROP DEFAULT;
+```
+
+> **Note:** Older MySQL versions may require `MODIFY COLUMN` instead.
+
+---
+
+# Common Errors
+
+## Error 1: Unknown Column
+
+```sql
+ALTER TABLE courses
+DROP COLUMN salary;
+```
+
+### Error
+
+```text
+ERROR 1091 (42000):
+Can't DROP 'salary'; check that column/key exists
+```
+
+### Solution
+
+Check the table structure first.
+
+```sql
+DESC courses;
+```
+
+---
+
+## Error 2: Table Doesn't Exist
+
+```sql
+ALTER TABLE students
+ADD COLUMN email VARCHAR(100);
+```
+
+### Error
+
+```text
+ERROR 1146 (42S02):
+Table 'training.students' doesn't exist
+```
+
+### Solution
+
+```sql
+SHOW TABLES;
+```
+
+---
+
+## Error 3: Duplicate Column Name
+
+```sql
+ALTER TABLE courses
+ADD COLUMN duration INT;
+```
+
+### Error
+
+```text
+ERROR 1060 (42S21):
+Duplicate column name 'duration'
+```
+
+---
+
+# Summary
+
+| Command                          | Purpose                                        |
+| -------------------------------- | ---------------------------------------------- |
+| `ADD COLUMN`                     | Adds a new column                              |
+| `ADD COLUMN ..., ADD COLUMN ...` | Adds multiple columns                          |
+| `MODIFY COLUMN`                  | Changes the datatype or definition of a column |
+| `RENAME COLUMN`                  | Renames a column                               |
+| `RENAME TO`                      | Renames the table                              |
+| `DROP COLUMN`                    | Deletes a column                               |
+| `FIRST`                          | Moves a column to the first position           |
+| `AFTER`                          | Places a column after another column           |
+
+---
+
+# Practice Questions
+
+1. Add a column named `category` to the `courses` table.
+2. Add two new columns: `rating` and `language`.
+3. Change the size of `course_name` from `VARCHAR(50)` to `VARCHAR(150)`.
+4. Rename the column `fee` to `course_fee`.
+5. Rename the table `courses` to `course_details`.
+6. Delete the `category` column.
+7. Move `course_fee` to the first position.
+8. Display the final table structure using `DESC`.
+
+
+
+# Deleting Data and Dropping Tables
+
+MySQL provides different commands to remove data or database objects. Choosing the correct command is important because each command behaves differently.
+
+---
+
+# Difference Between DELETE, TRUNCATE and DROP
+
+| Command    | Removes Data | Removes Structure | Can Use WHERE | Can Be Rolled Back* |
+| ---------- | ------------ | ----------------- | ------------- | ------------------- |
+| DELETE     | ✅ Yes        | ❌ No              | ✅ Yes         | ✅ Yes               |
+| TRUNCATE   | ✅ Yes        | ❌ No              | ❌ No          | ❌ No                |
+| DROP TABLE | ✅ Yes        | ✅ Yes             | ❌ No          | ❌ No                |
+
+> **Note:** Rollback depends on the storage engine and transaction settings.
+
+---
+
+# Current Table
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50),
+    duration INT,
+    fee INT
+);
+```
+
+```sql
+INSERT INTO courses
+VALUES
+(101, 'Python', 30, 5000),
+(102, 'Java', 45, 7000),
+(103, 'SQL', 20, 3000),
+(104, 'Web Development', 60, 9000);
+```
+
+---
+
+# 1. Delete a Specific Record
+
+Use the `WHERE` clause to delete only the required record.
+
+### Syntax
+
+```sql
+DELETE FROM table_name
+WHERE condition;
+```
+
+### Example
+
+```sql
+DELETE FROM courses
+WHERE course_id = 103;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+# 2. Delete Multiple Records
+
+Deletes all records that satisfy the given condition.
+
+```sql
+DELETE FROM courses
+WHERE fee < 6000;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+# 3. Delete All Records
+
+Removes all rows from the table but keeps the table structure.
+
+```sql
+DELETE FROM courses;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+Expected Output
+
+```text
+Empty set
+```
+
+---
+
+# 4. TRUNCATE TABLE
+
+`TRUNCATE` removes all rows from a table.
+
+Unlike `DELETE`, it is faster because it removes all records at once.
+
+The table structure remains unchanged.
+
+### Syntax
+
+```sql
+TRUNCATE TABLE table_name;
+```
+
+### Example
+
+```sql
+TRUNCATE TABLE courses;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+# 5. Drop a Table
+
+`DROP TABLE` permanently removes the table and all its data.
+
+### Syntax
+
+```sql
+DROP TABLE table_name;
+```
+
+### Example
+
+```sql
+DROP TABLE courses;
+```
+
+### Verify
+
+```sql
+SHOW TABLES;
+```
+
+---
+
+# 6. Drop a Table Only If It Exists
+
+Avoids an error if the table is not available.
+
+```sql
+DROP TABLE IF EXISTS courses;
+```
+
+---
+
+# 7. Drop Multiple Tables
+
+```sql
+DROP TABLE trainers, course_catalog;
+```
+
+---
+
+# 8. Drop an Entire Database
+
+Deletes the database and every table inside it.
+
+### Syntax
+
+```sql
+DROP DATABASE database_name;
+```
+
+### Example
+
+```sql
+DROP DATABASE training;
+```
+
+---
+
+# 9. Drop a Database Only If It Exists
+
+```sql
+DROP DATABASE IF EXISTS training;
+```
+
+---
+
+# Common Errors
+
+## Error 1: Unknown Table
+
+```sql
+DROP TABLE students;
+```
+
+### Error
+
+```text
+ERROR 1051 (42S02):
+Unknown table 'students'
+```
+
+### Solution
+
+```sql
+SHOW TABLES;
+```
+
+or
+
+```sql
+DROP TABLE IF EXISTS students;
+```
+
+---
+
+## Error 2: Unknown Database
+
+```sql
+DROP DATABASE college;
+```
+
+### Error
+
+```text
+ERROR 1008 (HY000):
+Can't drop database 'college'; database doesn't exist
+```
+
+### Solution
+
+```sql
+SHOW DATABASES;
+```
+
+or
+
+```sql
+DROP DATABASE IF EXISTS college;
+```
+
+---
+
+# Summary
+
+| Command                              | Purpose                                |
+| ------------------------------------ | -------------------------------------- |
+| `DELETE FROM table WHERE condition;` | Deletes selected rows                  |
+| `DELETE FROM table;`                 | Deletes all rows                       |
+| `TRUNCATE TABLE table;`              | Removes all rows quickly               |
+| `DROP TABLE table;`                  | Deletes the table permanently          |
+| `DROP TABLE IF EXISTS table;`        | Deletes the table only if it exists    |
+| `DROP DATABASE database;`            | Deletes the database permanently       |
+| `DROP DATABASE IF EXISTS database;`  | Deletes the database only if it exists |
+
+---
+
+# Practice Questions
+
+1. Delete the course with `course_id = 102`.
+2. Delete all courses where the fee is less than `6000`.
+3. Remove all records from the `courses` table using `DELETE`.
+4. Insert the records again and remove all rows using `TRUNCATE`.
+5. Verify that the table structure still exists.
+6. Delete the `courses` table.
+7. Display all remaining tables.
+8. Delete the `training` database.
+9. Display all available databases.
+
+---
+
+# Class Summary
+
+In this notebook, you learned:
+
+* Creating a database
+* Viewing and selecting a database
+* Understanding tables, datatypes, and constraints
+* Creating tables in different ways
+* Inserting records
+* Modifying tables using `ALTER TABLE`
+* Deleting records using `DELETE`
+* Removing all records using `TRUNCATE`
+* Deleting tables using `DROP TABLE`
+* Deleting databases using `DROP DATABASE`
+
+You are now ready to learn the next topic: **Retrieving Data using the `SELECT` statement**.
+
 
