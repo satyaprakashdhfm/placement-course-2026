@@ -16,7 +16,16 @@ There are **two sets of notes in this folder**, kept deliberately:
 | 1 | [DAY2_CREATE_UPATE_DELETE.md](DAY2_CREATE_UPATE_DELETE.md) | Databases, tables, data types, constraints, `CREATE`, `INSERT`, `ALTER`, `DELETE`, `TRUNCATE`, `DROP` |
 | 2 | [DAY3_SELECT_RETRIEVING_DATA.md](DAY3_SELECT_RETRIEVING_DATA.md) | `SELECT`, `DISTINCT`, `WHERE`, `ORDER BY`, `LIMIT`, `OFFSET`, aliases, `NULL`, `IFNULL` |
 | 3 | [DAY4_OPERATORS_AND_CLAUSES.md](DAY4_OPERATORS_AND_CLAUSES.md) | `IN`, `BETWEEN`, `LIKE`, `AND`/`OR`/`NOT`, precedence, `EXISTS` |
-| — | *still to write* | Functions · Grouping · Joins · Subqueries & Window · Views/Indexes/Transactions · Stored Programs · Revision |
+| 4 | [DAY5_SQL_FUNCTIONS.md](DAY5_SQL_FUNCTIONS.md) | String, numeric, date, aggregate and conditional functions |
+| 5 | [DAY6_GROUP_BY_AND_HAVING.md](DAY6_GROUP_BY_AND_HAVING.md) | `GROUP BY`, `HAVING`, execution order, duplicates, `WITH ROLLUP` |
+| 6 | [DAY7_JOINS_AND_UNION.md](DAY7_JOINS_AND_UNION.md) | `INNER`, `LEFT`, `RIGHT`, `CROSS`, `SELF` joins, `UNION` |
+| 7 | [DAY8_SUBQUERIES_AND_WINDOW_FUNCTIONS.md](DAY8_SUBQUERIES_AND_WINDOW_FUNCTIONS.md) | Subqueries, derived tables, `ROW_NUMBER`/`RANK`/`DENSE_RANK`, `PARTITION BY` |
+| 8 | [DAY9_VIEWS_INDEXES_TRANSACTIONS.md](DAY9_VIEWS_INDEXES_TRANSACTIONS.md) | Views, indexes, `EXPLAIN`, transactions, `SAVEPOINT`, ACID |
+| 9 | [DAY10_STORED_PROCEDURES_FUNCTIONS_TRIGGERS.md](DAY10_STORED_PROCEDURES_FUNCTIONS_TRIGGERS.md) | `DELIMITER`, procedures, functions, handlers, `SIGNAL`, triggers |
+| 10 | [DAY11_REVISION_AND_INTERVIEW_PREP.md](DAY11_REVISION_AND_INTERVIEW_PREP.md) | 7 query patterns, 20 interview questions, silent failures, myths, dialects |
+
+Each file is **self-contained** — the table setup is at the top, so it can be run
+straight through during a class.
 
 Every SQL block in the teaching notes is executed against MySQL before it is
 committed, and the `Expected Output` blocks are the real output. The examples in
