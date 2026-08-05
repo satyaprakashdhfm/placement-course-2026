@@ -1,11 +1,28 @@
-# SQL Course — Syllabus (Day 1–18)
+# SQL Course — Syllabus
 
-Taught in **MySQL 8** with **MySQL Workbench** — the database used by most of
-the industry.
+Taught in **MySQL 8** with **MySQL Workbench**.
 
-📖 **[DIALECTS.md](DIALECTS.md)** compares MySQL with **SQLite** and
-**PostgreSQL** side by side. Every day also ends with a 📌 *Dialect corner*
-noting what changes elsewhere, so the team can move between engines.
+There are **two sets of notes in this folder**, kept deliberately:
+
+| Set | Files | Purpose |
+|---|---|---|
+| **Teaching notes** | `DAY2_...`, `DAY3_...`, `DAY4_...` | What you teach *from*, live. One operation per numbered section, Syntax → Example → Expected Output, self-contained and runnable top to bottom |
+| **Reference notes** | `Day_01_...` to `Day_18_...` | Deeper background, dialect comparisons, and the 🔺 ADVANCED teacher sections. Read before class, not during |
+
+## Teaching notes (class order)
+
+| # | File | Topics |
+|---|---|---|
+| 1 | [DAY2_CREATE_UPATE_DELETE.md](DAY2_CREATE_UPATE_DELETE.md) | Databases, tables, data types, constraints, `CREATE`, `INSERT`, `ALTER`, `DELETE`, `TRUNCATE`, `DROP` |
+| 2 | [DAY3_SELECT_RETRIEVING_DATA.md](DAY3_SELECT_RETRIEVING_DATA.md) | `SELECT`, `DISTINCT`, `WHERE`, `ORDER BY`, `LIMIT`, `OFFSET`, aliases, `NULL`, `IFNULL` |
+| 3 | [DAY4_OPERATORS_AND_CLAUSES.md](DAY4_OPERATORS_AND_CLAUSES.md) | `IN`, `BETWEEN`, `LIKE`, `AND`/`OR`/`NOT`, precedence, `EXISTS` |
+| — | *still to write* | Functions · Grouping · Joins · Subqueries & Window · Views/Indexes/Transactions · Stored Programs · Revision |
+
+Every SQL block in the teaching notes is executed against MySQL before it is
+committed, and the `Expected Output` blocks are the real output. The examples in
+`Common Errors` are real failures, with the real message.
+
+---
 
 ## Days
 
