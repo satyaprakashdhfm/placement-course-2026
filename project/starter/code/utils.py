@@ -7,9 +7,9 @@ working example of RECURSION, a function that calls itself. You are expected
 to be able to explain both.
 """
 
-import functools
-from datetime import datetime
-from pathlib import Path
+import functools                # helpers that wrap functions
+from datetime import datetime   # date and time values
+from pathlib import Path        # file paths, any OS
 
 LOG_FILE = Path(__file__).resolve().parent.parent / "data" / "actions.log"
 

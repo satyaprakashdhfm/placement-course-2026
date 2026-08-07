@@ -30,10 +30,10 @@ Expected output:
     {101: ..., 102: ..., 103: ...}
 """
 
-import json
-from pathlib import Path
+import json                         # read and write JSON
+from pathlib import Path            # file paths, any OS
 
-from code.models import Student
+from code.models import Student     # our own Student class
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DB_FILE = DATA_DIR / "students.json"

@@ -18,7 +18,7 @@ Expected output (with the 3 students you were given):
     3 69.11 66.67 Anita Sharma
 """
 
-from code.exceptions import StudentNotFoundError
+from code.exceptions import StudentNotFoundError  # our own error class
 
 
 def get_student(students, roll_no):

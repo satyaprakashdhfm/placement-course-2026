@@ -1,6 +1,5 @@
 # Mini Project — Student Result Management System
 
-**Course:** Python (Day 1–16)  ·  **Mode:** Individual  ·  **Time:** 3–4 hours
 
 ---
 

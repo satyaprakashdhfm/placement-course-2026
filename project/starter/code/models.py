@@ -36,9 +36,9 @@ Expected output:
     1     Ravi Kumar        80.0  B     PASS
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod             # tools for abstract classes
 
-from code.exceptions import InvalidMarkError
+from code.exceptions import InvalidMarkError    # our own error class
 
 # GIVEN. A SET: the order does not matter and each subject appears once.
 SUBJECTS = {"maths", "physics", "chemistry"}

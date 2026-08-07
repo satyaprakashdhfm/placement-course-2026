@@ -22,5 +22,13 @@
       "physics": 32.0,
       "chemistry": 44.0
     }
+  },
+  "104": {
+    "name": "Satya",
+    "marks": {
+      "chemistry": 14.0,
+      "maths": 50.0,
+      "physics": 100.0
+    }
   }
 }

@@ -20,10 +20,10 @@ so students[101] finds a student instantly, without searching.
 """
 
 # Two import styles (Day 16): whole module -> report.rank_list(), names -> Student().
-from code import report, storage
-from code.exceptions import InvalidMarkError, StudentNotFoundError
-from code.models import SUBJECTS, Person, Student
-from code.utils import ask_int, ask_text, log_action
+from code import report, storage                      # our own project modules
+from code.exceptions import InvalidMarkError, StudentNotFoundError  # our errors
+from code.models import SUBJECTS, Person, Student     # our classes and subjects
+from code.utils import ask_int, ask_text, log_action  # our helpers, decorator
 
 MENU = """
 1. Add student        3. View one student

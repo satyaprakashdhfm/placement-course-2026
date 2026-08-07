@@ -1,15 +1,40 @@
-# Student Result Management System
+# Student Result Management System - requirements.txt
 #
-# This project deliberately uses ONLY the Python standard library
-# (json, csv, abc, functools, threading, pathlib, datetime).
-# So there is nothing to install - but every real project ships this file,
-# and you still create a virtual environment for it:
+# NO PACKAGES. Nothing to download.
+# Every module we import already ships with Python - the standard library:
 #
-#   python -m venv venv
-#   venv\Scripts\activate          (Windows)
-#   source venv/bin/activate       (macOS / Linux)
-#   pip install -r requirements.txt
-#   python main.py
+#   json   pathlib   abc   functools   datetime
 #
-# When you add a third-party package later, record it with:
-#   pip freeze > requirements.txt
+# So the only thing this project needs is Python itself:
+#
+#   python >= 3.8            (built and tested on 3.14)
+#
+# ---------------------------------------------------------------------------
+# YOU STILL MAKE A VIRTUAL ENVIRONMENT - this is the part to learn
+# ---------------------------------------------------------------------------
+# A venv is a private copy of Python owned by THIS folder. Anything you
+# install inside it cannot break your other projects, and deleting the `venv`
+# folder undoes it completely. Every real project has one, so we make one too.
+#
+# Run these from this folder, the one holding main.py:
+#
+#   1  python -m venv venv              create it        - once, ever
+#   2  venv\Scripts\activate            switch it ON     - Windows
+#      source venv/bin/activate         switch it ON     - macOS / Linux
+#   3  pip install -r requirements.txt  installs nothing - expected here
+#   4  python main.py                   run it           - always exit with 0
+#
+#      deactivate                       switch it OFF
+#
+# Step 2 worked when your prompt starts with (venv).
+# Step 3 finding no packages is the CORRECT result, not an error. Run it
+# anyway - it is the habit, and it is the command that will matter later.
+#
+# IF IT FAILS
+#   PowerShell "running scripts is disabled" -> run once, then repeat step 2:
+#       Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+#   "No module named 'code.models'"          -> wrong folder, cd to main.py
+#   "'python' is not recognized" (Windows)   -> type  py  instead of  python
+#
+# When a project DOES need a package, it gets pinned here by hand, like:
+#   requests==2.32.3
