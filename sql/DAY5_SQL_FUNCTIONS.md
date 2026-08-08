@@ -512,6 +512,163 @@ If a date is stored as text, and we want to perform date operations on it, we ca
 SELECT
     STR_TO_DATE('15-01-2025', '%d-%m-%Y') AS converted_date;
 
+Yes. If you mean **“I want the SQL statements and the expected output to appear in a code-style block so I can copy them directly into my notebook”**, then yes — use triple backticks:
+
+```sql
+SELECT *
+FROM students;
+```
+
+And for output, you can use a normal table or a text block:
+
+```text
+student_id | name         | joined_on
+-----------|--------------|-----------
+101        | Rahul Verma  | 2025-01-15
+102        | Anita Sharma | 2025-01-20
+```
+
+For your date example, I would structure it like this:
+
+### 1. Original DATE
+
+```sql
+SELECT joined_on
+FROM students
+WHERE student_id = 101;
+```
+
+**Output:**
+
+```text
+joined_on
+----------
+2025-01-15
+```
+
+**Datatype:**
+
+```text
+DATE
+```
+
+### 2. Convert DATE → formatted text
+
+```sql
+SELECT
+    joined_on,
+    DATE_FORMAT(joined_on, '%d-%m-%Y') AS formatted_date
+FROM students
+WHERE student_id = 101;
+```
+
+**Output:**
+
+```text
+joined_on   | formatted_date
+------------|---------------
+2025-01-15  | 15-01-2025
+```
+
+Here:
+
+```text
+joined_on       → DATE
+formatted_date  → formatted string
+```
+
+### 3. Actually create a table to see the datatype
+
+```sql
+DROP TABLE IF EXISTS formatted_dates;
+
+CREATE TABLE formatted_dates AS
+SELECT
+    student_id,
+    joined_on,
+    DATE_FORMAT(joined_on, '%d-%m-%Y') AS formatted_date
+FROM students;
+```
+
+Then:
+
+```sql
+DESC formatted_dates;
+```
+
+**Expected output:**
+
+```text
+Field            Type
+---------------  -------------
+student_id       int
+joined_on        date
+formatted_date   varchar(...)
+```
+
+### 4. Convert the text back to DATE
+
+```sql
+DROP TABLE IF EXISTS converted_dates;
+
+CREATE TABLE converted_dates AS
+SELECT
+    student_id,
+    formatted_date,
+    STR_TO_DATE(formatted_date, '%d-%m-%Y') AS converted_date
+FROM formatted_dates;
+```
+
+Then:
+
+```sql
+DESC converted_dates;
+```
+
+**Expected output:**
+
+```text
+Field            Type
+---------------  -------------
+student_id       int
+formatted_date   varchar(...)
+converted_date   date
+```
+
+And finally:
+
+```sql
+SELECT *
+FROM converted_dates;
+```
+
+**Output:**
+
+```text
+student_id | formatted_date | converted_date
+-----------|----------------|---------------
+101        | 15-01-2025     | 2025-01-15
+102        | 20-01-2025     | 2025-01-20
+103        | 01-02-2025     | 2025-02-01
+```
+
+So your teaching flow becomes very clear:
+
+```text
+DATE
+  ↓
+DATE_FORMAT()
+  ↓
+VARCHAR / TEXT
+  ↓
+STR_TO_DATE()
+  ↓
+DATE
+```
+
+And yes, **triple backticks with `sql`** are the right format when you want the SQL to be copy-pasteable.
+
+
 # 12. DATEDIFF — Days Between Two Dates
 
 ### Syntax
