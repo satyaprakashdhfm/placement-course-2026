@@ -490,6 +490,54 @@ The first 3 rows were skipped, then the next 3 were returned.
 
 ---
 
+### Selecting Multiple Record Ranges
+
+If we want to retrieve **records from 3rd to 7th and again from 11th to 12th**, `LIMIT` and `OFFSET` alone cannot directly select two separate ranges.
+
+#### Method 1: Using `ROW_NUMBER()`
+
+First assign a row number based on the required order, and then filter the required ranges.
+
+```sql
+SELECT *
+FROM (
+    SELECT *,
+           ROW_NUMBER() OVER (ORDER BY marks DESC) AS rn
+    FROM students
+) t
+WHERE rn BETWEEN 3 AND 7
+   OR rn BETWEEN 11 AND 12;
+```
+
+**In simple words:**
+`ROW_NUMBER()` assigns a sequential number to each record. We can then use `WHERE` to select multiple ranges, such as **3–7 and 11–12**.
+
+---
+
+#### Method 2: Using `UNION ALL`
+
+We can write separate queries for each range and combine their results using `UNION ALL`.
+
+```sql
+SELECT *
+FROM students
+ORDER BY marks DESC
+LIMIT 5 OFFSET 2
+
+UNION ALL
+
+SELECT *
+FROM students
+ORDER BY marks DESC
+LIMIT 2 OFFSET 10;
+```
+
+**In simple words:**
+Run one query to get records **3–7**, another query to get **11–12**, and combine both result sets using `UNION ALL`.
+
+> **Note:** In practice, `ROW_NUMBER()` is generally cleaner and more flexible when selecting multiple arbitrary ranges from an ordered result.
+
+
 # 12. Rename Columns Using Aliases
 
 An **alias** changes the column heading in the output. The table is not
