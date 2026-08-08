@@ -505,6 +505,12 @@ SELECT name, DATE_FORMAT(joined_on,'%d-%m-%Y') AS formatted FROM students LIMIT 
 > its result — `'15-01-2025'` sorts before `'20-12-2024'` as text.
 
 ---
+. Text → DATE using STR_TO_DATE()
+
+If a date is stored as text, and we want to perform date operations on it, we can convert it into an actual DATE using STR_TO_DATE().
+
+SELECT
+    STR_TO_DATE('15-01-2025', '%d-%m-%Y') AS converted_date;
 
 # 12. DATEDIFF — Days Between Two Dates
 
@@ -537,6 +543,29 @@ SELECT name, DATEDIFF('2025-06-01', joined_on) AS days_since FROM students LIMIT
 > the query is wrong or the date moved.
 
 ---
+Current date
+SELECT CURDATE();
+
+Example output:
+
+2026-08-08
+
+CURRENT_DATE() can also be used:
+
+SELECT CURRENT_DATE();
+Current date and time
+SELECT NOW();
+
+Example:
+
+2026-08-08 22:47:00
+
+So:
+
+CURDATE() → Current date only
+NOW()     → Current date + current time
+Yesterday
+
 
 # 13. DATE_ADD and DATE_SUB
 
@@ -581,6 +610,26 @@ Notice that subtracting one month from `2025-01-15` correctly gives
 | `LAST_DAY(d)`| Last date of that month    |
 
 ---
+Use DATE_SUB():
+
+SELECT DATE_SUB(CURDATE(), INTERVAL 1 DAY);
+
+Or more simply:
+
+SELECT CURDATE() - INTERVAL 1 DAY;
+Tomorrow
+SELECT CURDATE() + INTERVAL 1 DAY;
+Find students who joined in the last 30 days
+SELECT *
+FROM students
+WHERE joined_on >= CURDATE() - INTERVAL 30 DAY;
+Find the difference between two dates
+
+Use DATEDIFF():
+
+SELECT DATEDIFF('2025-03-05', '2025-01-15');
+
+This returns the number of days between the two dates.
 
 # PART 4 — AGGREGATE FUNCTIONS
 
