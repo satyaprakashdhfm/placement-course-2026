@@ -239,6 +239,60 @@ SELECT TRIM('   MySQL   ') AS trimmed,
 
 ---
 
+Yes. If you're building a **SQL learning repo/notebook**, you can keep the same `students` table as your base dataset and then add small sections demonstrating each function.
+
+For example, your repo can have a section like this:
+
+### String Functions — TRIM, LTRIM, RTRIM
+
+```sql
+-- Add sample records with leading/trailing spaces
+INSERT INTO students
+VALUES
+(111, '   Surya Reddy', 'Hyderabad', 25, 'SQL', 85, '2025-06-01'),
+(112, 'Anita Sharma   ', 'Chennai', 24, 'Python', 90, '2025-06-02'),
+(113, '   Rahul Kumar   ', 'Pune', 23, 'Java', 75, '2025-06-03');
+
+-- Remove spaces from the left
+SELECT name, LTRIM(name) AS left_trimmed
+FROM students
+WHERE student_id >= 111;
+
+-- Remove spaces from the right
+SELECT name, RTRIM(name) AS right_trimmed
+FROM students
+WHERE student_id >= 111;
+
+-- Remove spaces from both sides
+SELECT name, TRIM(name) AS trimmed_name
+FROM students
+WHERE student_id >= 111;
+```
+
+**Concept:**
+
+* `LTRIM()` → removes spaces from the **left side**.
+* `RTRIM()` → removes spaces from the **right side**.
+* `TRIM()` → removes spaces from **both sides**.
+* These functions modify the **query result only**; they don't change the stored data unless you use them inside an `UPDATE`.
+
+You can follow the same pattern for the other SQL functions you're learning:
+
+```text
+students table
+     ↓
+INSERT sample data if needed
+     ↓
+SELECT statement demonstrating the function
+     ↓
+Short explanation of what the function does
+     ↓
+Expected result / observation
+```
+
+That's actually a very good way to structure your SQL repo because students can **run each section independently and immediately see what the function does**.
+
+
 # 6. INSTR — Finding a Position
 
 `INSTR` returns the position of a character or word, or `0` if not found.
