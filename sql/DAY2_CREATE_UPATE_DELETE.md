@@ -1624,6 +1624,671 @@ DROP DATABASE IF EXISTS training;
 ```
 
 ---
+# UPDATE in MySQL
+
+The `UPDATE` statement is used to **modify existing data in one or more rows of a table**.
+
+Unlike `ALTER TABLE`, which changes the **structure of a table**, `UPDATE` changes the **data stored in the table**.
+
+### Important Points
+
+* `UPDATE` modifies existing records.
+* It can update one column or multiple columns.
+* The `WHERE` clause determines which rows will be updated.
+* If `WHERE` is omitted, **all rows will be updated**.
+* You can use calculations, functions, `CASE`, and conditions inside an `UPDATE`.
+* `NULL` values should be checked using `IS NULL` or `IS NOT NULL`.
+* Always verify the `WHERE` condition before executing an important `UPDATE`.
+
+---
+
+# Current Table
+
+We will use the following table throughout this section.
+
+```sql
+CREATE TABLE students (
+    student_id INT PRIMARY KEY,
+    name       VARCHAR(50) NOT NULL,
+    city       VARCHAR(50),
+    age        INT,
+    course     VARCHAR(50),
+    marks      INT,
+    joined_on  DATE
+);
+```
+
+Example data:
+
+```sql
+INSERT INTO students VALUES
+(101, 'Rahul Verma', 'Hyderabad', 21, 'Python', 78, '2025-01-15'),
+(102, 'Anita Sharma', 'Chennai', 22, 'SQL', 95, '2025-01-20'),
+(103, 'Karan Patel', 'Hyderabad', 20, 'Python', 38, '2025-02-01'),
+(104, 'Priya Nair', 'Kochi', 23, 'Java', 66, '2025-02-10'),
+(105, 'Vikram Rao', 'Hyderabad', 21, 'SQL', 81, '2025-03-05');
+```
+
+---
+
+# 1. Update a Single Column
+
+Use `SET` to specify the new value.
+
+### Syntax
+
+```sql
+UPDATE table_name
+SET column_name = new_value
+WHERE condition;
+```
+
+### Example
+
+Change Rahul's marks from 78 to 85:
+
+```sql
+UPDATE students
+SET marks = 85
+WHERE student_id = 101;
+```
+
+### Verify
+
+```sql
+SELECT *
+FROM students
+WHERE student_id = 101;
+```
+
+### Concept
+
+```text
+UPDATE → Which table?
+SET    → What should change?
+WHERE  → Which rows should change?
+```
+
+---
+
+# 2. Update Multiple Columns
+
+You can update multiple columns in a single statement.
+
+### Example
+
+Update Rahul's city and marks:
+
+```sql
+UPDATE students
+SET
+    city = 'Bangalore',
+    marks = 90
+WHERE student_id = 101;
+```
+
+### Verify
+
+```sql
+SELECT *
+FROM students
+WHERE student_id = 101;
+```
+
+---
+
+# 3. Update Multiple Rows
+
+The `WHERE` condition can match multiple rows.
+
+### Example
+
+Change all Python students to Data Science:
+
+```sql
+UPDATE students
+SET course = 'Data Science'
+WHERE course = 'Python';
+```
+
+Every row where `course = 'Python'` will be updated.
+
+### Verify
+
+```sql
+SELECT *
+FROM students
+WHERE course = 'Data Science';
+```
+
+---
+
+# 4. Update All Rows
+
+If you do not specify a `WHERE` clause, **all rows in the table will be updated**.
+
+### Example
+
+Increase everyone's marks by 5:
+
+```sql
+UPDATE students
+SET marks = marks + 5;
+```
+
+This updates every row.
+
+### Important Warning
+
+This statement:
+
+```sql
+UPDATE students
+SET city = 'Hyderabad';
+```
+
+will change the city of **every student** to Hyderabad.
+
+If you only want to update one student:
+
+```sql
+UPDATE students
+SET city = 'Hyderabad'
+WHERE student_id = 101;
+```
+
+> **Always be careful when using `UPDATE` without `WHERE`.**
+
+---
+
+# 5. Update Using an Expression
+
+The new value does not have to be a fixed value.
+
+You can use the existing value in a calculation.
+
+### Example
+
+Increase marks by 10 for SQL students:
+
+```sql
+UPDATE students
+SET marks = marks + 10
+WHERE course = 'SQL';
+```
+
+If a student currently has:
+
+```text
+marks = 81
+```
+
+After the update:
+
+```text
+marks = 91
+```
+
+The calculation is performed separately for each matching row.
+
+---
+
+# 6. Update Using Multiple Conditions
+
+You can use `AND`, `OR`, `IN`, and other conditions.
+
+### Example: AND
+
+Increase marks by 5 for SQL students who scored below 80:
+
+```sql
+UPDATE students
+SET marks = marks + 5
+WHERE course = 'SQL'
+  AND marks < 80;
+```
+
+### Example: IN
+
+Update the course for students from Hyderabad or Chennai:
+
+```sql
+UPDATE students
+SET course = 'SQL'
+WHERE city IN ('Hyderabad', 'Chennai');
+```
+
+### Example: OR
+
+```sql
+UPDATE students
+SET course = 'SQL'
+WHERE city = 'Hyderabad'
+   OR city = 'Chennai';
+```
+
+---
+
+# 7. Update NULL Values
+
+To find `NULL` values, use `IS NULL`.
+
+Do **not** use:
+
+```sql
+UPDATE students
+SET marks = 0
+WHERE marks = NULL;
+```
+
+Use:
+
+```sql
+UPDATE students
+SET marks = 0
+WHERE marks IS NULL;
+```
+
+### Why?
+
+`NULL` represents an unknown or missing value and cannot be compared using `=`.
+
+### Verify
+
+```sql
+SELECT *
+FROM students
+WHERE marks IS NULL;
+```
+
+---
+
+# 8. Update Only Non-NULL Values
+
+Use `IS NOT NULL` when you want to update rows that already have a value.
+
+### Example
+
+Increase marks by 5 only where marks are available:
+
+```sql
+UPDATE students
+SET marks = marks + 5
+WHERE marks IS NOT NULL;
+```
+
+---
+
+# 9. Update Using SQL Functions
+
+You can use SQL functions inside an `UPDATE`.
+
+### Example: UPPER()
+
+Convert city names to uppercase:
+
+```sql
+UPDATE students
+SET city = UPPER(city);
+```
+
+### Example: TRIM()
+
+Remove leading and trailing spaces from names:
+
+```sql
+UPDATE students
+SET name = TRIM(name);
+```
+
+### Example: COALESCE()
+
+Replace NULL course values with `Not Assigned`:
+
+```sql
+UPDATE students
+SET course = COALESCE(course, 'Not Assigned')
+WHERE course IS NULL;
+```
+
+---
+
+# 10. Update Using CASE
+
+`CASE` allows different rows to receive different values based on conditions.
+
+### Example
+
+Suppose we want to create different performance categories.
+
+```sql
+UPDATE students
+SET course =
+    CASE
+        WHEN marks >= 90 THEN 'Advanced'
+        WHEN marks >= 60 THEN 'Intermediate'
+        ELSE 'Beginner'
+    END;
+```
+
+The logic is:
+
+```text
+marks >= 90  → Advanced
+marks >= 60  → Intermediate
+marks < 60   → Beginner
+```
+
+> **Note:** In a real database, it would be better to store this in a separate column such as `performance_level` rather than replacing the `course` column. This example is only for demonstrating `CASE` with `UPDATE`.
+
+---
+
+# 11. Update a Date Column
+
+You can directly assign a date value.
+
+```sql
+UPDATE students
+SET joined_on = '2025-06-01'
+WHERE student_id = 101;
+```
+
+You can also perform date calculations.
+
+### Add 7 days
+
+```sql
+UPDATE students
+SET joined_on = joined_on + INTERVAL 7 DAY
+WHERE student_id = 101;
+```
+
+### Subtract 30 days
+
+```sql
+UPDATE students
+SET joined_on = joined_on - INTERVAL 30 DAY
+WHERE student_id = 101;
+```
+
+---
+
+# 12. Update Using Another Column
+
+You can use the value of one column to calculate another column.
+
+### Example
+
+Add the student's age to their marks:
+
+```sql
+UPDATE students
+SET marks = marks + age
+WHERE marks IS NOT NULL;
+```
+
+For example:
+
+```text
+marks = 78
+age   = 21
+
+New marks = 78 + 21 = 99
+```
+
+---
+
+# 13. Update Using Another Table
+
+MySQL allows you to update a table using data from another table with `JOIN`.
+
+Suppose we have:
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50)
+);
+```
+
+And `students` contains:
+
+```text
+student_id
+course_id
+course
+```
+
+We can update the student's course name using the `courses` table:
+
+```sql
+UPDATE students s
+JOIN courses c
+    ON s.course_id = c.course_id
+SET s.course = c.course_name;
+```
+
+This is useful when the value that needs to be updated comes from another related table.
+
+---
+
+# 14. Update a Limited Number of Rows
+
+MySQL allows `LIMIT` with `UPDATE`.
+
+### Example
+
+Update only one matching row:
+
+```sql
+UPDATE students
+SET marks = marks + 5
+WHERE course = 'SQL'
+LIMIT 1;
+```
+
+This updates only one matching row.
+
+> **Note:** If multiple rows satisfy the condition, do not assume which particular row will be selected unless you use an appropriate ordering strategy.
+
+---
+
+# 15. Verify Before Updating
+
+A good practice is to first run a `SELECT` using the same `WHERE` condition.
+
+Suppose you want to run:
+
+```sql
+UPDATE students
+SET marks = marks + 5
+WHERE course = 'SQL';
+```
+
+Before executing it, first check:
+
+```sql
+SELECT *
+FROM students
+WHERE course = 'SQL';
+```
+
+This lets you see which rows will be affected.
+
+Then execute the `UPDATE`.
+
+### Recommended workflow
+
+```text
+1. SELECT → Check the rows
+2. UPDATE → Modify the rows
+3. SELECT → Verify the result
+```
+
+---
+
+# 16. UPDATE vs ALTER TABLE
+
+This is an important distinction.
+
+### ALTER TABLE
+
+Changes the **structure/schema** of the table.
+
+```sql
+ALTER TABLE students
+ADD COLUMN email VARCHAR(100);
+```
+
+This adds a new column.
+
+### UPDATE
+
+Changes the **data stored in existing rows**.
+
+```sql
+UPDATE students
+SET email = 'student@example.com'
+WHERE student_id = 101;
+```
+
+This changes the value in an existing row.
+
+### Easy way to remember
+
+```text
+ALTER TABLE → Changes table structure
+UPDATE      → Changes existing data
+```
+
+---
+
+# 17. UPDATE vs INSERT
+
+Another important distinction:
+
+### INSERT
+
+Adds a **new row**.
+
+```sql
+INSERT INTO students
+(student_id, name, city, age, course, marks, joined_on)
+VALUES
+(106, 'Sneha Iyer', 'Chennai', 22, 'Java', 54, '2025-03-12');
+```
+
+### UPDATE
+
+Changes an **existing row**.
+
+```sql
+UPDATE students
+SET marks = 60
+WHERE student_id = 106;
+```
+
+### Easy way to remember
+
+```text
+INSERT → Add new rows
+UPDATE → Change existing rows
+```
+
+---
+
+# 18. UPDATE and Primary Keys
+
+You can update a primary key, but you should generally avoid doing so unless there is a valid reason.
+
+For example:
+
+```sql
+UPDATE students
+SET student_id = 200
+WHERE student_id = 101;
+```
+
+If `200` is not already being used and no foreign-key relationships prevent the change, MySQL may allow it.
+
+However, changing primary keys can affect related tables and is generally not recommended for routine data updates.
+
+---
+
+# 19. UPDATE and UNIQUE Columns
+
+If a column has a `UNIQUE` constraint, the new value must also remain unique.
+
+Suppose:
+
+```text
+email
+-------------------
+surya@example.com
+rahul@example.com
+```
+
+If `email` is unique:
+
+```sql
+UPDATE students
+SET email = 'rahul@example.com'
+WHERE student_id = 101;
+```
+
+MySQL will reject the update because that email already exists.
+
+This demonstrates that **constraints are checked during UPDATE as well as INSERT**.
+
+---
+
+# 20. Quick Cheat Sheet
+
+| Requirement                | Example                         |
+| -------------------------- | ------------------------------- |
+| Update one column          | `SET marks = 90`                |
+| Update multiple columns    | `SET city = 'Pune', marks = 90` |
+| Update specific rows       | Use `WHERE`                     |
+| Update all rows            | Omit `WHERE`                    |
+| Increase a number          | `marks = marks + 5`             |
+| Update NULL values         | `WHERE marks IS NULL`           |
+| Update non-NULL values     | `WHERE marks IS NOT NULL`       |
+| Use multiple conditions    | `AND`, `OR`, `IN`               |
+| Conditional update         | `CASE`                          |
+| Update text                | `UPPER()`, `LOWER()`, `TRIM()`  |
+| Update dates               | `INTERVAL`, date functions      |
+| Update using another table | `UPDATE ... JOIN`               |
+| Limit affected rows        | `LIMIT`                         |
+| Check before updating      | Run matching `SELECT` first     |
+
+---
+
+# Key Concept
+
+The basic structure to remember is:
+
+```sql
+UPDATE table_name
+SET
+    column1 = new_value,
+    column2 = new_value
+WHERE condition;
+```
+
+Think of it as:
+
+```text
+UPDATE → Which table?
+SET    → What should change?
+WHERE  → Which rows should change?
+```
+
+### Most Important Rule
+
+> **If you omit the `WHERE` clause, the `UPDATE` statement will affect every row in the table. Always check the `WHERE` condition carefully before executing an UPDATE.**
+
+
+
 
 # Common Errors
 
