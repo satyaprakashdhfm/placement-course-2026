@@ -1423,207 +1423,6 @@ Duplicate column name 'duration'
 8. Display the final table structure using `DESC`.
 
 
-
-# Deleting Data and Dropping Tables
-
-MySQL provides different commands to remove data or database objects. Choosing the correct command is important because each command behaves differently.
-
----
-
-# Difference Between DELETE, TRUNCATE and DROP
-
-| Command    | Removes Data | Removes Structure | Can Use WHERE | Can Be Rolled Back* |
-| ---------- | ------------ | ----------------- | ------------- | ------------------- |
-| DELETE     | ✅ Yes        | ❌ No              | ✅ Yes         | ✅ Yes               |
-| TRUNCATE   | ✅ Yes        | ❌ No              | ❌ No          | ❌ No                |
-| DROP TABLE | ✅ Yes        | ✅ Yes             | ❌ No          | ❌ No                |
-
-> **Note:** Rollback depends on the storage engine and transaction settings.
-
----
-
-# Current Table
-
-```sql
-CREATE TABLE courses (
-    course_id INT PRIMARY KEY,
-    course_name VARCHAR(50),
-    duration INT,
-    fee INT
-);
-```
-
-```sql
-INSERT INTO courses
-VALUES
-(101, 'Python', 30, 5000),
-(102, 'Java', 45, 7000),
-(103, 'SQL', 20, 3000),
-(104, 'Web Development', 60, 9000);
-```
-
----
-
-# 1. Delete a Specific Record
-
-Use the `WHERE` clause to delete only the required record.
-
-### Syntax
-
-```sql
-DELETE FROM table_name
-WHERE condition;
-```
-
-### Example
-
-```sql
-DELETE FROM courses
-WHERE course_id = 103;
-```
-
-### Verify
-
-```sql
-SELECT * FROM courses;
-```
-
----
-
-# 2. Delete Multiple Records
-
-Deletes all records that satisfy the given condition.
-
-```sql
-DELETE FROM courses
-WHERE fee < 6000;
-```
-
-### Verify
-
-```sql
-SELECT * FROM courses;
-```
-
----
-
-# 3. Delete All Records
-
-Removes all rows from the table but keeps the table structure.
-
-```sql
-DELETE FROM courses;
-```
-
-### Verify
-
-```sql
-SELECT * FROM courses;
-```
-
-Expected Output
-
-```text
-Empty set
-```
-
----
-
-# 4. TRUNCATE TABLE
-
-`TRUNCATE` removes all rows from a table.
-
-Unlike `DELETE`, it is faster because it removes all records at once.
-
-The table structure remains unchanged.
-
-### Syntax
-
-```sql
-TRUNCATE TABLE table_name;
-```
-
-### Example
-
-```sql
-TRUNCATE TABLE courses;
-```
-
-### Verify
-
-```sql
-SELECT * FROM courses;
-```
-
----
-
-# 5. Drop a Table
-
-`DROP TABLE` permanently removes the table and all its data.
-
-### Syntax
-
-```sql
-DROP TABLE table_name;
-```
-
-### Example
-
-```sql
-DROP TABLE courses;
-```
-
-### Verify
-
-```sql
-SHOW TABLES;
-```
-
----
-
-# 6. Drop a Table Only If It Exists
-
-Avoids an error if the table is not available.
-
-```sql
-DROP TABLE IF EXISTS courses;
-```
-
----
-
-# 7. Drop Multiple Tables
-
-```sql
-DROP TABLE trainers, course_catalog;
-```
-
----
-
-# 8. Drop an Entire Database
-
-Deletes the database and every table inside it.
-
-### Syntax
-
-```sql
-DROP DATABASE database_name;
-```
-
-### Example
-
-```sql
-DROP DATABASE training;
-```
-
----
-
-# 9. Drop a Database Only If It Exists
-
-```sql
-DROP DATABASE IF EXISTS training;
-```
-
----
 # UPDATE in MySQL
 
 The `UPDATE` statement is used to **modify existing data in one or more rows of a table**.
@@ -2286,6 +2085,210 @@ WHERE  → Which rows should change?
 ### Most Important Rule
 
 > **If you omit the `WHERE` clause, the `UPDATE` statement will affect every row in the table. Always check the `WHERE` condition carefully before executing an UPDATE.**
+
+
+
+
+# Deleting Data and Dropping Tables
+
+MySQL provides different commands to remove data or database objects. Choosing the correct command is important because each command behaves differently.
+
+---
+
+# Difference Between DELETE, TRUNCATE and DROP
+
+| Command    | Removes Data | Removes Structure | Can Use WHERE | Can Be Rolled Back* |
+| ---------- | ------------ | ----------------- | ------------- | ------------------- |
+| DELETE     | ✅ Yes        | ❌ No              | ✅ Yes         | ✅ Yes               |
+| TRUNCATE   | ✅ Yes        | ❌ No              | ❌ No          | ❌ No                |
+| DROP TABLE | ✅ Yes        | ✅ Yes             | ❌ No          | ❌ No                |
+
+> **Note:** Rollback depends on the storage engine and transaction settings.
+
+---
+
+# Current Table
+
+```sql
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(50),
+    duration INT,
+    fee INT
+);
+```
+
+```sql
+INSERT INTO courses
+VALUES
+(101, 'Python', 30, 5000),
+(102, 'Java', 45, 7000),
+(103, 'SQL', 20, 3000),
+(104, 'Web Development', 60, 9000);
+```
+
+---
+
+# 1. Delete a Specific Record
+
+Use the `WHERE` clause to delete only the required record.
+
+### Syntax
+
+```sql
+DELETE FROM table_name
+WHERE condition;
+```
+
+### Example
+
+```sql
+DELETE FROM courses
+WHERE course_id = 103;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+# 2. Delete Multiple Records
+
+Deletes all records that satisfy the given condition.
+
+```sql
+DELETE FROM courses
+WHERE fee < 6000;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+# 3. Delete All Records
+
+Removes all rows from the table but keeps the table structure.
+
+```sql
+DELETE FROM courses;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+Expected Output
+
+```text
+Empty set
+```
+
+---
+
+# 4. TRUNCATE TABLE
+
+`TRUNCATE` removes all rows from a table.
+
+Unlike `DELETE`, it is faster because it removes all records at once.
+
+The table structure remains unchanged.
+
+### Syntax
+
+```sql
+TRUNCATE TABLE table_name;
+```
+
+### Example
+
+```sql
+TRUNCATE TABLE courses;
+```
+
+### Verify
+
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+# 5. Drop a Table
+
+`DROP TABLE` permanently removes the table and all its data.
+
+### Syntax
+
+```sql
+DROP TABLE table_name;
+```
+
+### Example
+
+```sql
+DROP TABLE courses;
+```
+
+### Verify
+
+```sql
+SHOW TABLES;
+```
+
+---
+
+# 6. Drop a Table Only If It Exists
+
+Avoids an error if the table is not available.
+
+```sql
+DROP TABLE IF EXISTS courses;
+```
+
+---
+
+# 7. Drop Multiple Tables
+
+```sql
+DROP TABLE trainers, course_catalog;
+```
+
+---
+
+# 8. Drop an Entire Database
+
+Deletes the database and every table inside it.
+
+### Syntax
+
+```sql
+DROP DATABASE database_name;
+```
+
+### Example
+
+```sql
+DROP DATABASE training;
+```
+
+---
+
+# 9. Drop a Database Only If It Exists
+
+```sql
+DROP DATABASE IF EXISTS training;
+```
+
+---
 
 
 
