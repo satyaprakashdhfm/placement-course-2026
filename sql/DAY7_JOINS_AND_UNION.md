@@ -132,6 +132,8 @@ INNER JOIN table2 ON table1.column = table2.column;
 
 ### Example
 
+**Question:** Which student is enrolled in which course?
+
 ```sql
 SELECT s.name, c.course_name
 FROM students s
@@ -183,6 +185,8 @@ LEFT JOIN table2 ON table1.column = table2.column;
 
 ### Example
 
+**Question:** List every student with their course, including students who have not enrolled in any course.
+
 ```sql
 SELECT s.name, c.course_name
 FROM students s
@@ -221,6 +225,8 @@ column with `NULL`.
 Keeps **every** row from the right table.
 
 ### Example
+
+**Question:** List every course with its enrolled students, including courses that have no students.
 
 ```sql
 SELECT s.name, c.course_name
@@ -263,6 +269,8 @@ the most useful patterns in SQL.
 
 ### Example — Students with No Course
 
+**Question:** Which students have not enrolled in any course?
+
 ```sql
 SELECT s.name
 FROM students s
@@ -281,6 +289,8 @@ WHERE c.course_id IS NULL;
 ```
 
 ### Example — Courses with No Students
+
+**Question:** Which courses have no students enrolled?
 
 ```sql
 SELECT c.course_name
@@ -313,6 +323,8 @@ row in the same table.
 In the `employees` table, `manager_id` points to another `emp_id`.
 
 ### Example
+
+**Question:** For each employee, who is their manager (using their `manager_id`)?
 
 ```sql
 SELECT e.emp_name AS employee, m.emp_name AS manager
@@ -349,6 +361,8 @@ A `CROSS JOIN` pairs **every** row of one table with **every** row of the other.
 
 ### Example
 
+**Question:** How many student–course combinations are possible if every student were paired with every course?
+
 ```sql
 SELECT COUNT(*) AS cross_rows FROM students CROSS JOIN courses;
 ```
@@ -376,6 +390,8 @@ SELECT COUNT(*) AS cross_rows FROM students CROSS JOIN courses;
 A join can be filtered like any other query.
 
 ### Example
+
+**Question:** Which students are enrolled in courses costing more than ₹15,000, most expensive first?
 
 ```sql
 SELECT s.name, c.course_name, c.fee
@@ -408,6 +424,8 @@ because the tables are joined.
 Joins and grouping are used together constantly.
 
 ### Example
+
+**Question:** How many students are enrolled in each course?
 
 ```sql
 SELECT c.course_name, COUNT(s.student_id) AS enrolled
@@ -536,6 +554,8 @@ SELECT column1 FROM table2;
 
 ### Example
 
+**Question:** What is the single combined list of unique names, students and employees together?
+
 ```sql
 SELECT name FROM students
 UNION
@@ -584,26 +604,47 @@ SELECT emp_name FROM employees;
 
 ### Example
 
+**Question:** If we combine the course catalog with the course each enrolled student is actually taking, what does the full list look like?
+
 ```sql
-SELECT city FROM students WHERE city='Pune'
+SELECT course_name FROM courses
 UNION ALL
-SELECT city FROM students WHERE city='Pune';
+SELECT c.course_name
+FROM students s
+JOIN courses c ON s.course_id = c.course_id;
 ```
 
 ### Expected Output
 
 ```
-+------+
-| city |
-+------+
-| Pune |
-| Pune |
-| Pune |
-| Pune |
-+------+
++-------------+
+| course_name |
++-------------+
+| Python      |
+| SQL         |
+| Java        |
+| DSA         |
+| Cloud       |
+| Python      |
+| SQL         |
+| Python      |
+| Java        |
+| SQL         |
+| Java        |
+| DSA         |
+| Python      |
+| DSA         |
++-------------+
 ```
 
-With `UNION` instead of `UNION ALL`, this returns **one** row.
+**14 rows**, not 5. The first 5 come from the `courses` catalog (one row each). The
+remaining 9 come from the join — one row **per student** on that course, so
+`Python` shows up 4 times in total and `Cloud` only once (no student has joined
+it).
+
+With `UNION` instead of `UNION ALL`, MySQL would compare every row and collapse
+this back down to just the **5** distinct course names — hiding how popular each
+course actually is.
 
 > **Rule:** Use `UNION ALL` unless you actually need duplicates removed. `UNION`
 > does extra work to compare every row.
