@@ -507,38 +507,6 @@ allowed to see `SELECT` aliases in MySQL.
 
 ---
 
-# 14. WITH ROLLUP — Adding a Total Row
-
-`WITH ROLLUP` adds a grand-total row automatically.
-
-### Example
-
-```sql
-SELECT city, COUNT(*) AS n FROM students GROUP BY city WITH ROLLUP;
-```
-
-### Expected Output
-
-```
-+-----------+----+
-| city      | n  |
-+-----------+----+
-| Chennai   |  3 |
-| Hyderabad |  3 |
-| Kochi     |  2 |
-| Pune      |  2 |
-| NULL      | 10 |
-+-----------+----+
-```
-
-The last row, with `city` shown as `NULL`, is the **total** — all 10 students.
-
-> **Note:** The total row is marked by `NULL` in the grouped column, which is
-> confusing if the column itself contains `NULL`s. Use `GROUPING()` to tell them
-> apart.
-
----
-
 # 14. WITH ROLLUP — Adding Subtotals and a Grand Total
 
 `WITH ROLLUP` adds **subtotal rows and a grand-total row** automatically.
@@ -603,7 +571,7 @@ So:
 
 ---
 
-# 15. CUBE — All Possible Grouping Combinations
+# 15. CUBE — All Possible Grouping Combinations (Not In MYSQL)
 
 `CUBE` is similar to `ROLLUP`, but it generates **subtotals for all possible combinations** of the grouping columns.
 
